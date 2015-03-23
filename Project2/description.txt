@@ -1,0 +1,17 @@
+browser		<-				     <-		    web/IP
+(client)     ->      (Router)     ->       (server)
+					 /
+					/
+				(lectura/laptop)
+
+implement router so they can communicate
+
+[ETA][IP][TCP][///] [Ethernet Address][IP Address]
+process packet correctly and send.
+Process IP header
+
+ARP - use to figure out ethernet address of server (Has TTL(time To Live), might need to run again)
+IP forwarding
+1) Header
+2) FT (IP Forwarding Table)
+

@@ -1,0 +1,177 @@
+
+Marcos Gomez
+3/8/15
+
+Chapter 2:
+
+5. Assuming a framing protocol that uses bit stuffing, show the bit
+sequence transmitted over the link when the frame contains the
+following bit sequence:
+110101111101011111101011111110
+Mark the stuffed bits.
+
+The resulting frame would be:
+1101011111^01011111^101011111^110
+where ^ indicates a 0 that was stuffed
+
+
+
+
+11. Show that two-dimensional parity allows detection of all 3-bit
+errors.
+
+0101001 1
+1101001 0
+1011110 1
+1011111 0
+0110100 1
+0001110 1
+
+1111011 0
+
+Two-dimensional parity can detect all 3 bit errors because as long as there is an
+odd number of bit changes in a row or column, then it will be detected. If only
+3 bits change, then that means there has to be exactly 1 bit change in one of
+the rows or columns. Because there is only one bit change, it will be detected.
+
+
+24. Suppose you are designing a sliding window protocol for a
+1-Mbps point-to-point link to the moon, which has a one-way
+latency of 1.25 seconds. Assuming that each frame carries 1 KB of
+data, what is the minimum number of bits you need for the
+sequence number?
+
+Round trip time would be 2.5 seconds
+
+delay x bandwidth product is 2.5s x 1Mbps = 2.5 Mb = 312.5 KB = 312 packets
+
+The SWS should be 312.
+If the RWS is equal to 1, then the MaxSeqNum would be 313. So a minimum of 9 bits are needed.
+If RWS is equal to SWS, then the MaxSeqNum would be 624. So a minimum 10 bits are needed.
+
+
+
+
+
+43. Let A and B be two stations attempting to transmit on an
+Ethernet. Each has a steady queue of frames ready to send; A’s
+frames will be numbered A1, A2, and so on, and B’s similarly. Let
+T = 51.2 μs be the exponential backoff base unit.
+Suppose A and B simultaneously attempt to send frame 1,
+collide, and happen to choose backoff times of 0×T and 1×T,
+respectively, meaning A wins the race and transmits A1 while B
+waits. At the end of this transmission, B will attempt to retransmit
+B1 while A will attempt to transmit A2. These first attempts will
+collide, but now A backs off for either 0×T or 1×T, while B
+backs off for time equal to one of 0×T, . . . ,3×T.
+(a) Give the probability that A wins this second backoff race
+immediately after this first collision; that is, A’s first choice of
+backoff time k ×51.2 is less than B’s.
+(b) Suppose A wins this second backoff race. A transmits A3, and
+when it is finished, A and B collide again as A tries to transmit
+A4 and B tries once more to transmit B1. Give the probability
+that A wins this third backoff race immediately after the first
+collision.
+
+(a) 2C1 A  4C1 B
+prob of A is 0 is 1/2. prob B > 0 is 3/4  == 1/2 * 3/4 = 3/8 prob
+or
+prob of A 1 is 1/2. prob B > 1 is 1/2 == 1/2 * 1/2 = 1/4 prob
+
+(prob of B 0 is 1/4.)
+(prob of B 0 or 1 is 1/2. prob A )
+
+1/4 + 3/8 = 5/8 probability that A wins
+
+(b) A and B either choose 0xT or 1xT.
+So the probability that A wins is 1/2 * 1/2 = 1/4 probability.
+
+
+
+
+Chapter 3:
+
+13. Given the extended LAN shown in Figure 3.48, indicate which
+ports are not selected by the spanning tree algorithm.
+
+Ports not selected:
+Both ports around B5 (B to B5, F to B5)
+A to B2
+I to B6
+
+
+
+17. Consider hosts X, Y, Z, W and learning bridges B1, B2, B3, with
+initially empty forwarding tables, as in Figure 3.50.
+(a) Suppose X sends to W. Which bridges learn where X is? Does
+Y’s network interface see this packet?
+(b) Suppose Z now sends to X. Which bridges learn where Z is?
+Does Y’s network interface see this packet?
+(c) Suppose Y now sends to X. Which bridges learn where Y is?
+Does Z’s network interface see this packet?
+(d) Finally, suppose W sends to Y. Which bridges learn where W is?
+Does Z’s network interface see this packet?
+
+a) All 3 bridges learn where X is. Y's network interface sees this packet because
+it is flooded everywhere.
+
+b) All 3 bridges learn where Z is because it has to pass through all 3 to reach X.
+Y's network interface does not see this packet.
+
+c) B2 and B1 learn where Y is. Z's network interface does not see this packet.
+
+d) B3 and B2 learn where W is. Z's network interface sees this packet.
+
+
+
+
+
+36. Suppose a TCP message that contains 1024 bytes of data and
+20 bytes of TCP header is passed to IP for delivery across two
+networks interconnected by a router (i.e., it travels from the
+source host to a router to the destination host). The first network
+has an MTU of 1024 bytes; the second has an MTU of 576 bytes.
+Each network’s MTU gives the size of the largest IP datagram that
+can be carried in a link-layer frame. Give the sizes and offsets of
+the sequence of fragments delivered to the network layer at the
+destination host. Assume all IP headers are 20 bytes.
+
+The first fragmentation is done when traveling across the first network with
+the MTU of 1024 bytes. The maximum payload for this network is 1024 - 20 = 1004 bytes
+But the IP payload we are sending has 1024 + 20 = 1044 bytes. So it will be
+fragmented with the first fragment containing 1000 byte payload since it must be
+a multiple of 8. This first packet with a payload size of 1000 will have an offset
+value of 0. The second packet would have a payload size of 1044 - 1000 = 44 bytes,
+and the offset value for this packet would be 125.
+To travel across the second network, the maximum IP payload would be
+576 - 20 = 556 bytes. So the first larger packet must be fragmented again
+to meet this new MTU size. It is fragmented into 2 packets, one with a payload
+size of 552 and offset of 0, and the other with a payload size of 448 and an
+offset of 69.
+So 3 fragments reach the host. The first of size 572 bytes and offset 0. The second of
+size 468 bytes and offset 68. The third of size 64 bytes and offset 125.
+
+
+
+55. Suppose a router has built up the routing table shown in
+Table 3.18. The router can deliver packets directly over interfaces 0
+and 1, or it can forward packets to routers R2, R3, or R4. Describe
+what the router does with a packet addressed to each of the
+following destinations:
+(a) 128.96.39.10
+(b) 128.96.40.12
+(c) 128.96.40.151
+(d) 192.4.153.17
+(e) 192.4.153.90
+
+
+a) Applying subnet mask 255.255.255.128, we get 128.96.39.0
+Use Interface 1 as next hop
+b) Applying subnet mask 255.255.255.128, we get 128.96.40.0
+Use R2 as next hop
+c) Applying subnet mask 255.255.255.128, we get 128.96.40.128
+Use R4 as next hop
+d) Applying subnet mask 255.255.255.128, we get 192.4.153.0
+Use R3 as next hop
+e) Applying subnet mask 255.255.255.128, we get 192.4.153.64
+Use R4 as next hop

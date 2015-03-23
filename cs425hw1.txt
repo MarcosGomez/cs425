@@ -1,0 +1,27 @@
+Marcos Gomez
+2/2/15
+CSC 425
+
+Chapter 1
+
+3. 
+a) 1000 KB = 8192000 bits. 2 * .05 + 8192000/1500000(transmit) + .05/2 = 5.5863 seconds.
+b) number of packets required = 1000KB/1KB = 1000. We add 999 RTTs to the above answer so we get
+49.95 + 5.5863 = 55.536 seconds.
+c) Dividing 1000 packets by  20 gives 50. This will take 49.5 RTTs plus the initial 2 RTTs. Total time is 2.575 seconds
+d)At n RTTs past the inital handshaking we have sent would be 2^(n+1)-1 packets. At n = 9 we have been able to send all 1000 packets.
+The last packets arrives .5 RTT later. Total time is 2 + 9.5 RTTs, which is .575 seconds.
+
+
+5. Propagation delay is 4000m/2e8m/s = 2e-5 = 20 us(microseconds).
+800 bits / 20 us is  40 Mbps. For 512 it's 4096 / 20 = 204.8 Mbps.
+
+
+16.
+a) It takes 12Kb / 100Mbps = 120 us to transmit the packet on the link, which then takes 10 us for the last bit to propagate across the link.
+The total transfer delay is two transmit delays + two propagation delays = 260 us
+b) 3 switches has 4 links so it would be 4 transmit delays + 4 propagation delays = 520 us.
+c) You only need to decode first 200 bits. This taks 200 ns. The total delay is 1 transmit delay + 3 cut-through decoding delays 
++ 4 propagation delays = 120 + 3 * .2 + 4 * 10 = 160.6 us.
+
+18.

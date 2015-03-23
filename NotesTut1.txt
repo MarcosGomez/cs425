@@ -1,0 +1,28 @@
+Notes 425
+scp marcosgomez@vm50:~/client.c .
+
+ping 190.900. ... ip address use eth1 in ifconfig
+
+craet a socket
+int sockfd;
+sockfd = socket(AF_INET, SOCK_STREAM, 0); SOCK_STREAM = tcp
+
+struct sockaddr_in serv_addr;
+
+memset(&serv_addr, 0, sizeof(serv_addr));//0s out struct
+
+create a socket
+bind
+listen //listen (sockfd, 5);
+accept connect // int sesion = accpet(sockfd, (struct sockaddr*) &cli_addr, &clilen);
+send/recieve data // int bytes_recieved = recv(...);
+
+Thats TCP
+Now UDP
+
+server:
+create socket 
+bind socket to address
+send/recieve data //int bytes_received = recvfrom(...);
+
+sudo tcpdump -e -i eth1 -vvv //on either client or server when packets sending
