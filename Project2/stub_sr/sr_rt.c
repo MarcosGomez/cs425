@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------------------
  * file:  sr_rt.c
- * date:  Mon Oct 07 04:02:12 PDT 2002  
+ * date:  Mon Oct 07 04:02:12 PDT 2002
  * Author:  casado@stanford.edu
  *
  * Description:
@@ -22,9 +22,9 @@
 #include "sr_rt.h"
 #include "sr_router.h"
 
-/*--------------------------------------------------------------------- 
+/*---------------------------------------------------------------------
  * Method:
- *
+ * Reads the routing table from a file and adds it to the sr
  *---------------------------------------------------------------------*/
 
 int sr_load_rt(struct sr_instance* sr,const char* filename)
@@ -53,25 +53,25 @@ int sr_load_rt(struct sr_instance* sr,const char* filename)
     {
         if (EOF == sscanf(line,"%s %s %s %s",dest,gw,mask,iface)) break;
         if(inet_aton(dest,&dest_addr) == 0)
-        { 
+        {
             fprintf(stderr,
                     "Error loading routing table, cannot convert %s to valid IP\n",
                     dest);
-            return -1; 
+            return -1;
         }
         if(inet_aton(gw,&gw_addr) == 0)
-        { 
+        {
             fprintf(stderr,
                     "Error loading routing table, cannot convert %s to valid IP\n",
                     gw);
-            return -1; 
+            return -1;
         }
         if(inet_aton(mask,&mask_addr) == 0)
-        { 
+        {
             fprintf(stderr,
                     "Error loading routing table, cannot convert %s to valid IP\n",
                     mask);
-            return -1; 
+            return -1;
         }
         sr_add_rt_entry(sr,dest_addr,gw_addr,mask_addr,iface);
     } /* -- while -- */
@@ -79,9 +79,10 @@ int sr_load_rt(struct sr_instance* sr,const char* filename)
     return 0; /* -- success -- */
 } /* -- sr_load_rt -- */
 
-/*--------------------------------------------------------------------- 
+/*---------------------------------------------------------------------
  * Method:
- *
+ * Adds a routing table entry with this given values to the end of
+ * the list in sr_instance
  *---------------------------------------------------------------------*/
 
 void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
@@ -93,7 +94,7 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
     assert(if_name);
     assert(sr);
 
-    /* -- empty list special case -- */
+    /* -- empty list special case -- */ //Creates routing table with next == to zero
     if(sr->routing_table == 0)
     {
         sr->routing_table = (struct sr_rt*)malloc(sizeof(struct sr_rt));
@@ -106,6 +107,8 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
 
         return;
     }
+
+    //Else adds info to the end of the list
 
     /* -- find the end of the list -- */
     rt_walker = sr->routing_table;
@@ -124,9 +127,9 @@ void sr_add_rt_entry(struct sr_instance* sr, struct in_addr dest,
 
 } /* -- sr_add_entry -- */
 
-/*--------------------------------------------------------------------- 
+/*---------------------------------------------------------------------
  * Method:
- *
+ * Prints out the routing table of the given sr
  *---------------------------------------------------------------------*/
 
 void sr_print_routing_table(struct sr_instance* sr)
@@ -142,19 +145,19 @@ void sr_print_routing_table(struct sr_instance* sr)
     printf("Destination\tGateway\t\tMask\tIface\n");
 
     rt_walker = sr->routing_table;
-    
+
     sr_print_routing_entry(rt_walker);
     while(rt_walker->next)
     {
-        rt_walker = rt_walker->next; 
+        rt_walker = rt_walker->next;
         sr_print_routing_entry(rt_walker);
     }
 
 } /* -- sr_print_routing_table -- */
 
-/*--------------------------------------------------------------------- 
+/*---------------------------------------------------------------------
  * Method:
- *
+ * Only prints 1 entry of a routing table
  *---------------------------------------------------------------------*/
 
 void sr_print_routing_entry(struct sr_rt* entry)

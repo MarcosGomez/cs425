@@ -572,6 +572,7 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
  * Send a packet (ethernet header included!) of length 'len' to the server
  * to be injected onto the wire.
  *
+ * Sends out through interface iface
  *---------------------------------------------------------------------------*/
 
 int sr_send_packet(struct sr_instance* sr /* borrowed */,

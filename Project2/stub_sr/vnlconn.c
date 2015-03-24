@@ -51,7 +51,7 @@ ssize_t vnl_write(struct VnlConn* vc, const void* buf, size_t count) {
 
 void vnl_close(struct VnlConn* vc) {
 	close(vc->read_fd); close(vc->write_fd);
-	kill(vc->ssh_pid,SIGKILL);
+	kill(vc->ssh_pid,SIGKILL); //Error?
 	free(vc);
 }
 
@@ -63,4 +63,3 @@ void vnl_checkconn(struct VnlConn* vc) {
 		exit(0);
 	}
 }
-

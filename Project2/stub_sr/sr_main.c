@@ -237,7 +237,7 @@ static void sr_destroy_instance(struct sr_instance* sr)
  * Method: sr_init_instance(..)
  * Scope: Local
  *
- *
+ *Sets initial values for sr
  *----------------------------------------------------------------------------*/
 
 static void sr_init_instance(struct sr_instance* sr)
@@ -305,6 +305,7 @@ int sr_verify_routing_table(struct sr_instance* sr)
     return ret;
 } /* -- sr_verify_routing_table -- */
 
+// Loads and prints out routing table. Methods in sr_rt.c
 static void sr_load_rt_wrap(struct sr_instance* sr, char* rtable) {
     if(sr_load_rt(sr, rtable) != 0) {
         fprintf(stderr,"Error setting up routing table from file %s\n",
