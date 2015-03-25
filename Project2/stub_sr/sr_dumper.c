@@ -27,9 +27,9 @@ sf_write_header(FILE *fp, int linktype, int thiszone, int snaplen)
  */
 FILE *
 sr_dump_open(const char *fname, int thiszone, int snaplen)
-{       
+{
   FILE *fp;
- 
+
         if (fname[0] == '-' && fname[1] == '\0')
                 fp = stdout;
         else {
@@ -52,6 +52,7 @@ sr_dump_open(const char *fname, int thiszone, int snaplen)
 void
 sr_dump(FILE *fp, const struct pcap_pkthdr *h, const unsigned char *sp)
 {
+        int check;
         struct pcap_sf_pkthdr sf_hdr;
 
         sf_hdr.ts.tv_sec  = h->ts.tv_sec;
@@ -59,8 +60,15 @@ sr_dump(FILE *fp, const struct pcap_pkthdr *h, const unsigned char *sp)
         sf_hdr.caplen     = h->caplen;
         sf_hdr.len        = h->len;
         /* XXX we should check the return status */
-        (void)fwrite(&sf_hdr, sizeof(sf_hdr), 1, fp);
-        (void)fwrite((char *)sp, h->caplen, 1, fp);
+        check = (void)fwrite(&sf_hdr, sizeof(sf_hdr), 1, fp);
+        if(check < sizeof(sf_hdr)){
+          fprintf(stderr, "sr_dump: Error when writing to logfile!\n");
+        }
+
+        check = (void)fwrite((char *)sp, h->caplen, 1, fp);
+        if(check < sizeof(h->caplen)){
+          fprintf(stderr, "sr_dump: Error when writing to logfile!\n");
+        }
 }
 
 void
@@ -68,4 +76,3 @@ sr_dump_close(FILE *fp)
 {
   fclose(fp);
 }
-

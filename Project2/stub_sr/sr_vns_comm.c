@@ -350,6 +350,8 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
 
     bytes_read = 0;
 
+    // It first reads how long it is
+
     /* attempt to read the size of the incoming packet */
     while( bytes_read < 4)
     {
@@ -395,6 +397,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
 
     bytes_read = 0;
 
+    //Now it reads the rest minus what it has already read
     /* read the rest of the command */
     while ( bytes_read < len - 4)
     {
@@ -445,7 +448,8 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                     len - sizeof(c_packet_ethernet_header) +
                     sizeof(struct sr_ethernet_hdr),
                     (char*)(buf + sizeof(c_base))) )
-            { break; }
+            { printf("Found an ARP request to drop. Is sr_arp_req_not_for_us working?\n");
+              break; }
 
             /* -- log packet -- */
             sr_log_packet(sr, buf + sizeof(c_packet_header),
@@ -560,6 +564,15 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
      * to a virtual interface) ensure it is going to the correct topology
      * Note: This check should really be done server side ...
      */
+    // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 Private addresses
+
+    // Dest address is ether_hdr->ether_dhost
+
+    //  if ( memcmp( ether_hdr->ether_dhost, iface->addr, ETHER_ADDR_LEN) != 0 )
+    //  {
+    //      fprintf( stderr, "** Error, source address does not match interface\n");
+    //      return 0;
+    //  }
 
     return 1;
 
@@ -615,6 +628,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
         return -1;
     }
 
+    //Actually send packet to specified socket
 #ifdef VNL
     if( vnl_write(sr->vc, sr_pkt, total_len) < total_len )
 #else
