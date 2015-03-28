@@ -14,11 +14,25 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include <stdlib.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <netinet/if_ether.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#include <sys/ioctl.h>
+
+//#define  NEWSOCKET() socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP))
+
 
 #include "sr_if.h"
 #include "sr_rt.h"
 #include "sr_router.h"
 #include "sr_protocol.h"
+
+int ioctl_sock;
 
 /*---------------------------------------------------------------------
  * Method: sr_init(void)
@@ -30,10 +44,44 @@
 
 void sr_init(struct sr_instance* sr)
 {
+    uint8_t *buf = NULL; //1 byte at a time
+    unsigned int len = 0; //Later use sizeof to finde how many bytes
+    const char* iface = "";
+
+    struct sr_arphdr arphdr;
+
+    ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
+
+
     /* REQUIRES */
     assert(sr);
 
     /* Add initialization code here! TODO*/
+    //Send out ARP request to all servers on LAN to build table
+    //Create ARP request packet
+    //Fill out info. In sr_protocol.h
+    //Types
+    arphdr.ar_hrd = htons(ARPHDR_ETHER);
+    arphdr.ar_pro = htons(ETHERTYPE_IP);
+    //Address lengths
+    arphdr.ar_hln = ETHER_ADDR_LEN; //6
+    arphdr.ar_pln = IP_ADDR_LEN; //4
+    //Type
+    arphdr.ar_op = htons(ARP_REQUEST);
+    //Sender/Target IP/Hardware addresses
+    // arphdr.ar_sha
+
+    // arphdr.ar_sip
+
+    // arphdr.ar_tha
+
+    // arphdr.ar_tip
+
+    //Find out which interface to send them
+    iface = "eth1";
+    
+    //Send packets
+    sr_send_packet(sr, buf, len, iface); //sr_vns_comm.c
 
 } /* -- sr_init -- */
 
@@ -84,3 +132,25 @@ on the virtual topology and your own router. Your job is to make the router full
  functional by implementing packet processing and forwarding within the skeleton
 code. More specifically, you'll need to implement ARP and basic IP forwarding.
 */
+
+void get_ip_addr(struct in_addr* in_addr,char* str)
+{
+    struct ifreq ifr;
+    struct sockaddr_in sin;
+
+    strcpy(ifr.ifr_name, str);
+    ifr.ifr_addr.sa_family = AF_INET;
+    if (ioctl(ioctl_sock, SIOCGIFADDR, &ifr))
+        die("Failed to get IP address for the interface");
+
+
+    memcpy(&sin, &ifr.ifr_addr, sizeof(struct sockaddr_in));
+    in_addr->s_addr = sin.sin_addr.s_addr;
+    Debug("IP address: %s\n", inet_ntoa(*in_addr));
+}
+
+void die(const char* str)
+{
+    fprintf(stderr,"Error: %s\n",str);
+    exit(1);
+}

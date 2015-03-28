@@ -136,10 +136,14 @@ struct sr_ethernet_hdr
 #define ARP_REQUEST 1
 #define ARP_REPLY   2
 
+#ifndef IP_ADDR_LEN
+#define IP_ADDR_LEN 4
+#endif
+
 struct sr_arphdr 
 {
-    unsigned short  ar_hrd;             /* format of hardware address   */
-    unsigned short  ar_pro;             /* format of protocol address   */
+    unsigned short  ar_hrd;             /* format of hardware address  (hardware type) */
+    unsigned short  ar_pro;             /* format of protocol address  (protocol type) */
     unsigned char   ar_hln;             /* length of hardware address   */
     unsigned char   ar_pln;             /* length of protocol address   */
     unsigned short  ar_op;              /* ARP opcode (command)         */

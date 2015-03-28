@@ -1,0 +1,68 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1344\cocoasubrtf720
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww16200\viewh13200\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\b\fs36 \cf0 How to Test the Simple Router\
+
+\b0 \
+*** Attention ***\
+\
+Your router will be tested on a topology different from your assignment. Don\'92t hard code anything about your topology in your code. Your router will be compiled and tested on department linux machines only.\
+\
+*** Ping the Servers ***\
+\
+The simplest test is to ping one of the servers in your topology, and if ARP and IP forwarding work, the ping should go through with 0% loss. \
+\
+Since we don\'92t require you to implement ICMP on the router, pinging the router would not work.\
+\
+A variation of this test is to ping from server 1/2 to server 3/4. For example, if the topology number is 100, run the following command will let server1 ping server3:\
+\
+./vnltopo100.sh server1 ping server3-ip-addr\
+\
+Again, ping should go through with 0% loss.\
+\
+*** Test Web Access ***\
+\
+Run your router on a department linux machine.\
+\
+On a CS department machine, access the web server running on any of the 4 servers in your topology. \
+\
+http://ServerIP:16280/\
+\
+You can run a regular web browser from a lab machine, or use command-line tool such as lynx (which provides text-based interactive browsing), or wget (which downloads the web page).\
+\
+Once you see the web page, you can follow the instructions to download other files or access other services on the server. In particular, I plan to test your router by downloading a 64MB file. You can try that on command-line as follows:\
+\
+wget http://ServerIP:16280/64MB.bin -O /dev/null\
+\
+With a correctly implemented router, this download should be done within a minute or two.\
+\
+*** Test ARP behavior ***\
+\
+The ARP behavior will be testbed by examining the router\'92s log file.\
+\
+Run the router with log enabled:\
+\
+./sr -t TopologyNumber -l logfile\
+\
+Launch the web access, after a while, stop the router, and examine the log:\
+\
+tcpdump -r logfile\
+\
+(tcpdump takes many other arguments to display more information about the packets.)\
+\
+The logfile lists all packets coming in and going out of the router. It should show that the first packet to a server is preceded by ARP request/reply, but subsequent packets are not due to ARP cache. If the traffic to server 1 stops for about 15s (but keep traffic to another server going), the ARP entry for server 1 should time out, which means if we access server 1 again, there should be ARP request/reply triggered.\
+\
+To check the request timeout handling, make a copy of rtable file to rtable2. Change the nexthop gateway addresses in rtable2 to an address not existed in your topology. Run the router with this modified routing table:\
+\
+./sr -t TopologyNumber -r rtable2\
+\
+Now when you launch web access, the ARP request from the router will ask a non-existent nexthop, so there will be no reply and the router should give up after 5 ARP requests. \
+\
+*** Verify TTL decrement and Checksum ***\
+\
+The router should decrement TTL by 1 and update IP checksum when forwarding an IP packet. This can be checked by looking into the traffic log and compare the TTL values of incoming packet and outgoing packet. If checksum is not correct, tcpdump will complain.\
+\
+}

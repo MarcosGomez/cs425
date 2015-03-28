@@ -189,6 +189,7 @@ static void usage(char* argv0)
 /*-----------------------------------------------------------------------------
  * Method: sr_set_user(..)
  * Scope: local
+ * Sets the username
  *---------------------------------------------------------------------------*/
 
 void sr_set_user(struct sr_instance* sr)
@@ -237,7 +238,7 @@ static void sr_destroy_instance(struct sr_instance* sr)
  * Method: sr_init_instance(..)
  * Scope: Local
  *
- *Sets initial values for sr
+ * Sets initial values for sr, "Zeros out the values"
  *----------------------------------------------------------------------------*/
 
 static void sr_init_instance(struct sr_instance* sr)

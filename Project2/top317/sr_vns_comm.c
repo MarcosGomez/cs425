@@ -183,7 +183,7 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
 
     num_entries = (ntohl(hwinfo->mLen) - (2*sizeof(uint32_t)))/sizeof(c_hw_entry);
 
-    /* Debug("Received Hardware Info with %d entries\n",num_entries); */
+    Debug("Received Hardware Info with %d entries\n",num_entries);
 
     for ( i=0; i<num_entries; i++ )
     {
