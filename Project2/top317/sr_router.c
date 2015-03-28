@@ -149,6 +149,20 @@ void get_ip_addr(struct in_addr* in_addr,char* str)
     Debug("IP address: %s\n", inet_ntoa(*in_addr));
 }
 
+void get_hw_addr(u_char* buf,char* str)
+{
+    int i;
+    struct ifreq ifr;
+    char c,val = 0;
+
+    strcpy(ifr.ifr_name, str);
+    if (ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr))
+        die("Failed to get MAC address for the interface");
+
+    memcpy(buf, ifr.ifr_hwaddr.sa_data, 8);
+    Debug("MAC address: %0.2X:%0.2X:%0.2X:%0.2X:%0.2X:%0.2X\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
+}
+
 void die(const char* str)
 {
     fprintf(stderr,"Error: %s\n",str);
