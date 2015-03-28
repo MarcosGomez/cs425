@@ -160,7 +160,7 @@ void get_hw_addr(u_char* buf,char* str)
         die("Failed to get MAC address for the interface");
 
     memcpy(buf, ifr.ifr_hwaddr.sa_data, 8);
-    Debug("MAC address: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
+    Debug("MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
 }
 
 void die(const char* str)
