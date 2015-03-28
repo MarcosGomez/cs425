@@ -44,9 +44,11 @@ int ioctl_sock;
 
 void sr_init(struct sr_instance* sr)
 {
+    struct in_addr my_in_addr;
+    u_char hwaddr[ETHER_ADDR_LEN];
     uint8_t *buf = NULL; //1 byte at a time
     unsigned int len = 0; //Later use sizeof to finde how many bytes
-    const char* iface = "";
+    const char* iface = "eth1";
 
     struct sr_arphdr arphdr;
 
@@ -57,6 +59,10 @@ void sr_init(struct sr_instance* sr)
     assert(sr);
 
     /* Add initialization code here! TODO*/
+
+    get_hw_addr(hwaddr, iface);
+    get_ip_addr(&my_in_addr, iface);
+
     //Send out ARP request to all servers on LAN to build table
     //Create ARP request packet
     //Fill out info. In sr_protocol.h
