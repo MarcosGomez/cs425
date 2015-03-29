@@ -154,4 +154,25 @@ struct sr_arphdr
 } __attribute__ ((packed)) ;
 
 
+struct sr_arppkt //Size 60 bytes
+{
+    //Ether hdr 14
+    uint8_t  ether_dhost[ETHER_ADDR_LEN];    /* destination ethernet address */
+    uint8_t  ether_shost[ETHER_ADDR_LEN];    /* source ethernet address */
+    uint16_t ether_type;                     /* packet type ID */
+    //ARP hdr 28
+    unsigned short  ar_hrd;             /* format of hardware address  (hardware type) */
+    unsigned short  ar_pro;             /* format of protocol address  (protocol type) */
+    unsigned char   ar_hln;             /* length of hardware address   */
+    unsigned char   ar_pln;             /* length of protocol address   */
+    unsigned short  ar_op;              /* ARP opcode (command)         */
+    unsigned char   ar_sha[ETHER_ADDR_LEN];   /* sender hardware address      */
+    uint32_t        ar_sip;             /* sender IP address            */
+    unsigned char   ar_tha[ETHER_ADDR_LEN];   /* target hardware address      */
+    uint32_t        ar_tip;             /* target IP address            */
+    //Padding 18
+    char padding[18];
+} __attribute__ ((packed));
+
+
 #endif /* -- SR_PROTOCOL_H -- */

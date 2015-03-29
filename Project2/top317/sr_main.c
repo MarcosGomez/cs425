@@ -161,12 +161,13 @@ int main(int argc, char **argv)
 
     /* call router init (for arp subsystem etc.) */
     sr_init(&sr);
-
+    
+    Debug("Starting main loop\n");
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);
-
+    
     sr_destroy_instance(&sr);
-
+    Debug("Server closed\n");
     return 0;
 }/* -- main -- */
 

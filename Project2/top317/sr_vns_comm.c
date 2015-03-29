@@ -190,34 +190,34 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
         switch( ntohl(hwinfo->mHWInfo[i].mKey))
         {
             case HWFIXEDIP:
-                /*Debug("Fixed IP: %s\n",inet_ntoa(
-                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));*/
+                Debug("Fixed IP: %s\n",inet_ntoa(
+                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWINTERFACE:
-                /*Debug("INTERFACE: %s\n",hwinfo->mHWInfo[i].value);*/
+                Debug("INTERFACE: %s\n",hwinfo->mHWInfo[i].value);
                 sr_add_interface(sr,hwinfo->mHWInfo[i].value);
                 break;
             case HWSPEED:
-                /* Debug("Speed: %d\n",
-                        ntohl(*((unsigned int*)hwinfo->mHWInfo[i].value))); */
+                Debug("Speed: %d\n",
+                        ntohl(*((unsigned int*)hwinfo->mHWInfo[i].value)));
                 break;
             case HWSUBNET:
-                /* Debug("Subnet: %s\n",inet_ntoa(
-                            *((struct in_addr*)(hwinfo->mHWInfo[i].value)))); */
+                Debug("Subnet: %s\n",inet_ntoa(
+                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWMASK:
-                /* Debug("Mask: %s\n",inet_ntoa(
-                            *((struct in_addr*)(hwinfo->mHWInfo[i].value)))); */
+                Debug("\tMask: %s\n",inet_ntoa(
+                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 break;
             case HWETHIP:
-                /*Debug("IP: %s\n",inet_ntoa(
-                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));*/
+                Debug("\tIP: %s\n",inet_ntoa(
+                            *((struct in_addr*)(hwinfo->mHWInfo[i].value))));
                 sr_set_ether_ip(sr,*((uint32_t*)hwinfo->mHWInfo[i].value));
                 break;
             case HWETHER:
-                /*Debug("\tHardware Address: ");
+                Debug("\tHardware Address: ");
                 DebugMAC(hwinfo->mHWInfo[i].value);
-                Debug("\n"); */
+                Debug("\n");
                 sr_set_ether_addr(sr,(unsigned char*)hwinfo->mHWInfo[i].value);
                 break;
             default:
@@ -347,7 +347,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
     /*---------------------------------------------------------------------------
       Read a command from the server
       -------------------------------------------------------------------------*/
-
+    
     bytes_read = 0;
 
     // It first reads how long it is
@@ -391,6 +391,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
         fprintf(stderr,"Error: out of memory (sr_read_from_server)\n");
         return -1;
     }
+    
 
     /* set first field of command since we've already read it */
     *((int *)buf) = htonl(len);
@@ -440,6 +441,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
         /* -------------        VNSPACKET     -------------------- */
 
         case VNSPACKET:
+            Debug("Processing packet\n");
             sr_pkt = (c_packet_ethernet_header *)buf;
 
             /* -- check if it is an ARP to another router if so drop   -- */
@@ -491,22 +493,27 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                 return -1;
             }
             printf(" <-- Ready to process packets --> \n");
+            
+            //startARP(sr);
             break;
 
             /* ---------------- VNS_RTABLE ---------------- */
         case VNS_RTABLE:
+            Debug("Processing rtable\n");
             if(!sr_handle_rtable(sr, (c_rtable*)buf))
                 ret = -1;
             break;
 
             /* ------------- VNS_AUTH_REQUEST ------------- */
         case VNS_AUTH_REQUEST:
+            Debug("Processing auth request\n");
             if(!sr_handle_auth_request(sr, (c_auth_request*)buf))
                 ret = -1;
             break;
 
             /* ------------- VNS_AUTH_STATUS -------------- */
         case VNS_AUTH_STATUS:
+            Debug("Processing auth status\n");
             if(!sr_handle_auth_status(sr, (c_auth_status*)buf))
                 ret = -1;
             break;

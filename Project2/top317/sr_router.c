@@ -44,78 +44,14 @@ int ioctl_sock;
 
 void sr_init(struct sr_instance* sr)
 {
-    struct in_addr my_in_addr;
-    unsigned char hwaddr[ETHER_ADDR_LEN];
-    void *buf = NULL; //1 byte at a time uint8_t
-    unsigned int len = 0; //Later use sizeof to finde how many bytes
-    const char* iface = "eth1"; //eth1 doesnt exist // prob with eth header
-    char* sender = ""; //"" = myself
-
-    struct sr_arphdr arphdr;
-
-    
-
 
     /* REQUIRES */
     assert(sr);
 
     /* Add initialization code here! TODO*/
-    sr_add_interface(sr, iface);
-    sr_set_ether_addr(sr ,);
-    sr_set_ether_ip(sr, uint32_t);
-
-
-    //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
-    //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
-    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if(ioctl_sock < 0){
-        fprintf(stderr, "sr_init: Unable to create socket\n");
-    }
-
-    get_hw_addr(hwaddr, sender);
-    get_ip_addr(&my_in_addr, sender);
-
-    //Send out ARP request to all servers on LAN to build table
-    //Create ARP request packet
-    //Fill out info. In sr_protocol.h
-    //Types
-    arphdr.ar_hrd = htons(ARPHDR_ETHER);
-    arphdr.ar_pro = htons(ETHERTYPE_IP);
-    //Address lengths
-    arphdr.ar_hln = ETHER_ADDR_LEN; //6
-    arphdr.ar_pln = IP_ADDR_LEN; //4
-    //Type
-    arphdr.ar_op = htons(ARP_REQUEST);
-    //Sender/Target IP/Hardware addresses
     
-    for(int i = 0; i < ETHER_ADDR_LEN; i++){
-        arphdr.ar_sha[i] = hwaddr[i];
-    }
-
+    //startARP(sr);
     
-    for(int i = 0; i < ETHER_ADDR_LEN; i++){
-        arphdr.ar_tha[i] = 0xff; //Broadcast MAC addresses ff:ff:ff:ff:ff:ff
-    }
-    
-    memcpy(&arphdr.ar_sip, &my_in_addr, IP_ADDR_LEN);
-    memcpy(&arphdr.ar_tip, &my_in_addr, IP_ADDR_LEN);
-    //Debug("sr_int: memcpyed IP address: %s\n", inet_ntoa((struct in_addr)arphdr.ar_sip));
-     
-
-    //Find out which interface to send them
-    iface = "eth1";
-    //Set buffer
-    buf = &arphdr;
-    len = sizeof(arphdr);
-    Debug("sr_init: len = %u\n", len);
-    
-    sr_print_if_list(sr);
-
-    //Send packet
-    if(sr_send_packet(sr, buf, len, iface)){
-        fprintf(sdterr, "Failed to send initial ARP request\n");
-    } //sr_vns_comm.c
-    Debug("Successfully completed sr_init\n");
 
 } /* -- sr_init -- */
 
@@ -150,6 +86,7 @@ void sr_handlepacket(struct sr_instance* sr,
     printf("*** -> Received packet of length %d on interface %s\n",len, interface);
 
     //Not complete?TODO
+    Debug("RECIEVED A PACKET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
 }/* end sr_ForwardPacket */
 
@@ -166,6 +103,83 @@ on the virtual topology and your own router. Your job is to make the router full
  functional by implementing packet processing and forwarding within the skeleton
 code. More specifically, you'll need to implement ARP and basic IP forwarding.
 */
+
+void startARP(struct sr_instance* sr){
+    
+    struct in_addr my_in_addr;
+    unsigned char hwaddr[ETHER_ADDR_LEN];
+    void *buf = NULL; //1 byte at a time uint8_t
+    unsigned int len = 0; //Later use sizeof to finde how many bytes
+    const char* iface = "eth1"; //eth1 doesnt exist // prob with eth header
+    char* sender = "eth2"; //"" = current computer
+    
+    struct sr_arppkt arppkt;
+    
+    
+    /* REQUIRES */
+    assert(sr);
+    
+    //    sr_add_interface(sr, iface);
+    //    sr_set_ether_addr(sr ,);
+    //    sr_set_ether_ip(sr, uint32_t);
+    
+    
+    //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
+    //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
+    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if(ioctl_sock < 0){
+        fprintf(stderr, "startARP: Unable to create socket\n");
+    }
+    
+    get_hw_addr(hwaddr, sender);
+    get_ip_addr(&my_in_addr, sender);
+    
+    //Send out ARP request to all servers on LAN to build table
+    //Create ARP request packet
+    //Fill out info. In sr_protocol.h
+    //Types
+    arppkt.ether_type = htons(ETHERTYPE_ARP);
+    arppkt.ar_hrd = htons(ARPHDR_ETHER);
+    arppkt.ar_pro = htons(ETHERTYPE_IP);
+    //Address lengths
+    arppkt.ar_hln = ETHER_ADDR_LEN; //6
+    arppkt.ar_pln = IP_ADDR_LEN; //4
+    //Type
+    arppkt.ar_op = htons(ARP_REQUEST);
+    
+    //Sender/Target IP/Hardware addresses
+    
+    for(int i = 0; i < ETHER_ADDR_LEN; i++){
+        arppkt.ar_sha[i] = hwaddr[i];
+        arppkt.ether_shost[i] = hwaddr[i];
+    }
+    
+    
+    for(int i = 0; i < ETHER_ADDR_LEN; i++){
+        arppkt.ar_tha[i] = 0xff; //Broadcast MAC addresses ff:ff:ff:ff:ff:ff
+        arppkt.ether_dhost[i] = 0xff;
+    }
+    
+    memcpy(&arppkt.ar_sip, &my_in_addr, IP_ADDR_LEN);
+    memcpy(&arppkt.ar_tip, &my_in_addr, IP_ADDR_LEN);
+    Debug("starARP: memcpyed IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt.ar_sip))));
+    
+    
+    
+    //Find out which interface to send them
+    iface = "eth1";
+    //Set buffer
+    buf = &arppkt;
+    len = sizeof(arppkt);
+    Debug("startARP: len = %u\n", len);
+    
+    
+    //Send packet
+    if(sr_send_packet(sr, buf, len, iface)){
+        fprintf(stderr, "Failed to send initial ARP request\n");
+    } //sr_vns_comm.c
+}
+
 
 void get_ip_addr(struct in_addr* in_addr,char* str)
 {

@@ -90,6 +90,8 @@ void sr_add_interface(struct sr_instance* sr, const char* name)
     if_walker = if_walker->next;
     strncpy(if_walker->name,name,sr_IFACE_NAMELEN);
     if_walker->next = 0;
+    
+    //Debug("An interface was just added\n");
 } /* -- sr_add_interface -- */ 
 
 /*--------------------------------------------------------------------- 
@@ -113,6 +115,8 @@ void sr_set_ether_addr(struct sr_instance* sr, const unsigned char* addr)
 
     /* -- copy address -- */
     memcpy(if_walker->addr,addr,6);
+    
+    //Debug("Ethernet address added to interface\n");
 
 } /* -- sr_set_ether_addr -- */
 
@@ -137,7 +141,8 @@ void sr_set_ether_ip(struct sr_instance* sr, uint32_t ip_nbo)
 
     /* -- copy address -- */
     if_walker->ip = ip_nbo;
-
+    
+    //Debug("IP Address added to interface\n");
 } /* -- sr_set_ether_ip -- */
 
 /*--------------------------------------------------------------------- 
