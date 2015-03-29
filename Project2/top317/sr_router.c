@@ -53,18 +53,24 @@ void sr_init(struct sr_instance* sr)
 
     struct sr_arphdr arphdr;
 
-    //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
-    //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
-    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if(ioctl_sock < 0){
-        fprintf(stderr, "sr_init: Unable to create socket\n");
-    }
+    
 
 
     /* REQUIRES */
     assert(sr);
 
     /* Add initialization code here! TODO*/
+    sr_add_interface(sr, iface);
+    sr_set_ether_addr(sr ,);
+    sr_set_ether_ip(sr, uint32_t);
+
+
+    //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
+    //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
+    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if(ioctl_sock < 0){
+        fprintf(stderr, "sr_init: Unable to create socket\n");
+    }
 
     get_hw_addr(hwaddr, sender);
     get_ip_addr(&my_in_addr, sender);
@@ -103,8 +109,12 @@ void sr_init(struct sr_instance* sr)
     len = sizeof(arphdr);
     Debug("sr_init: len = %u\n", len);
     
-    //Send packets
-    sr_send_packet(sr, buf, len, iface); //sr_vns_comm.c
+    sr_print_if_list(sr);
+
+    //Send packet
+    if(sr_send_packet(sr, buf, len, iface)){
+        fprintf(sdterr, "Failed to send initial ARP request\n");
+    } //sr_vns_comm.c
     Debug("Successfully completed sr_init\n");
 
 } /* -- sr_init -- */

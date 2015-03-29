@@ -58,7 +58,7 @@ struct sr_if* sr_get_interface(struct sr_instance* sr, const char* name)
  * Method: sr_add_interface(..)
  * Scope: Global
  *
- * Add and interface to the router's list
+ * Add and interface to the router's list. Only sets name
  *
  *---------------------------------------------------------------------*/
 
