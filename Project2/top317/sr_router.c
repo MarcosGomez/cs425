@@ -86,7 +86,7 @@ void sr_handlepacket(struct sr_instance* sr,
     printf("*** -> Received packet of length %d on interface %s\n",len, interface);
 
     //Not complete?TODO
-    Debug("RECIEVED A PACKET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    //Read eth hdr
 
 }/* end sr_ForwardPacket */
 
