@@ -200,7 +200,8 @@ void sr_handlepacket(struct sr_instance* sr,
         Debug("With mask: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
         myIP = myIP & mask;
         destIP = destIP & mask;
-        Debug("After AND: %s and %s\n", inet_ntoa(*((struct in_addr*)(&myIP))), inet_ntoa(*((struct in_addr*)(&destIP))));
+        Debug("After AND: %s ", inet_ntoa(*((struct in_addr*)(&myIP)))
+        Debug("and %s\n",  inet_ntoa(*((struct in_addr*)(&destIP)))));
 
         /*-----------------------------------------------------------------------------------------------------*/
         //If dest ip in same subnet and dont know, then send arp request
@@ -224,6 +225,7 @@ void sr_handlepacket(struct sr_instance* sr,
             }
         }else{
             //Dest is not in LAN, so no ARP
+            Debug("This goes to different network\n");
             //Forward to default
             uint32_t zip = 0;
             for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
