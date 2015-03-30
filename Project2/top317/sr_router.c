@@ -194,8 +194,9 @@ void sr_handlepacket(struct sr_instance* sr,
             }
         }else{
             //Forward to default
+            uint32_t zip = 0;
             for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-                if(rt_walker->dest == 0){
+                if(memcmp(&rt_walker->dest, &zip, IP_ADDR_LEN) == 0){
                     Debug("Found the default router at %s\n", rt_walker->interface);
                     break;
                 }
