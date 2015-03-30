@@ -122,11 +122,11 @@ void sr_handlepacket(struct sr_instance* sr,
 
     /*-----------------------------------------------------------------------------------------------------*/
     //Check if need to add to routing table
-    if(type == ETHERTYPE_IP){
-        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
-    }else if(type == ETHERTYPE_ARP){
-        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
-    }
+    // if(type == ETHERTYPE_IP){
+    //     updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
+    // }else if(type == ETHERTYPE_ARP){
+    //     updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
+    // }
     /*-----------------------------------------------------------------------------------------------------*/
     if(type == ETHERTYPE_IP){
         struct ip* ipHdr = NULL;
