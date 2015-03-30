@@ -213,7 +213,7 @@ void sr_handlepacket(struct sr_instance* sr,
             //What happens when with local LAN
             Debug("This needs to go to the local subnet\n");
             
-            do{
+            //do{
                 for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
                     if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
                         Debug("IP addr (and MAC) found in interface\n");
@@ -224,7 +224,7 @@ void sr_handlepacket(struct sr_instance* sr,
                     Debug("Need to send ARP request to find HWAddr\n");
                     requestARP(sr, ipHdr->ip_dst);
                 }
-            }while(if_walker != 0);
+            //}while(if_walker != 0);
             Debug("About to send packet to LAN\n");
             //Edit packet
             
