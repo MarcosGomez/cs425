@@ -303,17 +303,28 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
     Debug("Updating routing table\n");
     uint32_t gateway = 0x00000000;
     uint32_t mask = 0xf8ffffff;//255.255.255.248
+    struct in_addr senderIP;
+    struct in_addr gw;
+    struct in_addr msk;
+
     Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
     Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
     if(ethertype == ETHERTYPE_IP){
         struct ip* ip_pckt = (struct ip*)packet;
+        memcpy(&senderIP, &ip_pckt->ip_src, IP_ADDR_LEN);
+        memcpy(&gw, &gateway, IP_ADDR_LEN);
+        memcpy(&msk, &mask, IP_ADDR_LEN);
         
-        sr_add_rt_entry(sr, (struct in_addr) ip_pckt->ip_src, (struct in_addr) gateway, (struct in_addr) mask, interface);
+        sr_add_rt_entry(sr, senderIP, gw, msk, interface);
 
     }else if(ethertype == ETHERTYPE_ARP){
         struct sr_arp_hdr* arp_pckt = (struct sr_arp_hdr*)packet;
+        memcpy(&senderIP, &arp_pckt->ar_sip, IP_ADDR_LEN);
+        memcpy(&gw, &gateway, IP_ADDR_LEN);
+        memcpy(&msk, &mask, IP_ADDR_LEN);
         
-        sr_add_rt_entry(sr, (struct in_addr) arp_pckt->ar_sip, (struct in_addr) gateway, (struct in_addr) mask, interface);
+        sr_add_rt_entry(sr, senderIP, gw, msk, interface);
+    
     }
     Debug("Finished updating routing table\n");
 }
