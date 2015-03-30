@@ -318,7 +318,7 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
         sr_add_rt_entry(sr, senderIP, gw, msk, interface);
 
     }else if(ethertype == ETHERTYPE_ARP){
-        struct sr_arp_hdr* arp_pckt = (struct sr_arp_hdr*)packet;
+        struct sr_arphdr* arp_pckt = (struct sr_arphdr*)packet;
         memcpy(&senderIP, &arp_pckt->ar_sip, IP_ADDR_LEN);
         memcpy(&gw, &gateway, IP_ADDR_LEN);
         memcpy(&msk, &mask, IP_ADDR_LEN);
