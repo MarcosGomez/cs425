@@ -79,6 +79,7 @@ void get_hw_addr(u_char*,char*);
 void requestARP(struct sr_instance* sr, struct in_addr target_in_addr);
 void replyARP(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* iface);
 void updateARPCache(struct sr_instance* sr, uint8_t * packet);
+void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int ethertype, char* interface);
 uint16_t ip_checksum(void* vdata,size_t length);
 uint16_t chksum(void *vdata, size_t length);
 int decrementAndCheck(struct ip* ipHdr);
