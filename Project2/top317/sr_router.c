@@ -192,7 +192,7 @@ void sr_handlepacket(struct sr_instance* sr,
             fprintf(stderr, "Couldn't fine subnet mask for this interface: %s!\n", interface);
             return;
         }
-        uint32_t mask = 0x00ffffff;
+        uint32_t mask = 0x00ffffff;//255.255.255.0
         //memcpy(&mask, &rt_walker->mask, IP_ADDR_LEN);
         Debug("Before mine AND dest IPs: %s", inet_ntoa(*((struct in_addr*)(&myIP))));
         Debug(" and %s\n", inet_ntoa(*((struct in_addr*)(&destIP))));
@@ -213,16 +213,48 @@ void sr_handlepacket(struct sr_instance* sr,
             //What happens when with local LAN
             Debug("This needs to go to the local subnet\n");
             
-            for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
-                if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
-                    Debug("IP addr already in interface\n");
+            do{
+                for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+                    if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
+                        Debug("IP addr (and MAC) found in interface\n");
+                        break;
+                    }
+                }
+                if(if_walker == 0){
+                    Debug("Need to send ARP request to find HWAddr\n");
+                    requestARP(sr, ipHdr->ip_dst);
+                }
+            }while(if_walker != 0)
+            Debug("About to send packet to LAN\n");
+            //Edit packet
+            
+            for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
                     break;
                 }
             }
-            if(if_walker == 0){
-                Debug("Need to send ARP request to find HWAddr\n");
-                requestARP(sr, ipHdr->ip_dst);
+            if(rt_walker == 0){
+                fprintf(stderr, "Something wrong with the routing table\n");
             }
+            struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
+            memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
+            memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
+            Debug("New dest HWaddr: ");
+            for(int i = 0; i < ETHER_ADDR_LEN; i++){
+                Debug("%02x:", etherHdr->ether_dhost[i]);
+            }
+            Debug("\n");
+            Debug("New source HWaddr: ");
+            for(int i = 0; i < ETHER_ADDR_LEN; i++){
+                Debug("%02x:", etherHdr->ether_shost[i]);
+            }
+            Debug("\n");
+            //Send it
+            if(sr_send_packet(sr, packet, len, rt_walker->interface)){
+                fprintf(stderr, "Failed to forward IP packet\n");
+            } //sr_vns_comm.c
+            
+
         }else{
             //Dest is not in LAN, so no ARP
             Debug("This goes to different network\n");
@@ -243,8 +275,20 @@ void sr_handlepacket(struct sr_instance* sr,
                    if(strcmp(if_walker->name, rt_walker->interface) == 0){
                         Debug("Found default router\n");
                         //CHange packet!
+
+                        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                            if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+                                break;
+                            }
+                        }
+                        if(rt_walker == 0){
+                            fprintf(stderr, "Something wrong with the routing table out\n");
+                        }
+                        struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
+                        memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
+                        memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
                        //Change source to my own
-                       memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+                        //memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
                        //memcpy( etherHdr->ether_dhost, if_walker->)
                        Debug("Forwarding to interface, which should be defualt:%s\n", if_walker->name);
                        if(sr_send_packet(sr, packet, len, if_walker->name)){
@@ -330,7 +374,6 @@ code. More specifically, you'll need to implement ARP and basic IP forwarding.
 */
 
 void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int ethertype, char* interface){
-    Debug("Updating routing table\n");
     uint32_t gateway = 0x00000000;
     uint32_t mask = 0xf8ffffff;//255.255.255.248
     struct in_addr senderIP;
@@ -338,8 +381,8 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
     struct in_addr msk;
     struct sr_rt* rt_walker;
 
-    Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
-    Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
+    //Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
+    //Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
     if(ethertype == ETHERTYPE_IP){
         struct ip* ip_pckt = (struct ip*)packet;
         memcpy(&senderIP, &ip_pckt->ip_src, IP_ADDR_LEN);
@@ -458,7 +501,7 @@ void replyARP(struct sr_instance* sr,
     memcpy(arppkt->ar_sha, iface->addr, ETHER_ADDR_LEN);
     memcpy(&arppkt->ar_sip, &iface->ip, IP_ADDR_LEN);
     
-    Debug("Info for ARP reply packet\n");
+    
     Debug("Source of ARP's HWaddr: ");
     for(int i = 0; i < ETHER_ADDR_LEN; i++){
         Debug("%02x:", arppkt->ar_sha[i]);
@@ -493,7 +536,6 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     struct sr_rt* rt_walker = NULL;
     struct sr_if* if_walker = NULL;
    
-    
     struct sr_arppkt arppkt;
     
     
@@ -502,7 +544,6 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     
     Debug("Creating ARP request\n");
     
-   
     
     //Send out ARP request to all servers on LAN to build table
     //Create ARP request packet
