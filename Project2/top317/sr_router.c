@@ -122,11 +122,11 @@ void sr_handlepacket(struct sr_instance* sr,
 
     /*-----------------------------------------------------------------------------------------------------*/
     //Check if need to add to routing table
-    // if(type == ETHERTYPE_IP){
-    //     updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
-    // }else if(type == ETHERTYPE_ARP){
-    //     updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
-    // }
+    if(type == ETHERTYPE_IP){
+        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
+    }else if(type == ETHERTYPE_ARP){
+        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
+    }
     /*-----------------------------------------------------------------------------------------------------*/
     if(type == ETHERTYPE_IP){
         struct ip* ipHdr = NULL;
@@ -593,12 +593,12 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     
     //Send packet to all non-gateways
     //source ip and MAC addr changes each time
-    int count = 0;
+    //int count = 0;
     uint32_t zero = 0;
     for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-        if(count == 3){
-            break;
-        }
+        // if(count == 3){
+        //     break;
+        // }
         //Check all entries in routing table
         if(memcmp(&rt_walker->gw, &zero, IP_ADDR_LEN) == 0){
             Debug("Need to send ARP request through interface %s\n", rt_walker->interface);
@@ -632,7 +632,7 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
             
             
         }
-        count++;
+        //count++;
     }
     Debug("Successfully Sent ARP Request\n");
     
