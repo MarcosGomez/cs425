@@ -213,7 +213,7 @@ void sr_handlepacket(struct sr_instance* sr,
             //What happens when with local LAN
             Debug("This needs to go to the local subnet\n");
             
-            //do{
+           
                 for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
                     if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
                         Debug("IP addr (and MAC) found in interface\n");
@@ -224,40 +224,44 @@ void sr_handlepacket(struct sr_instance* sr,
                     Debug("Need to send ARP request to find HWAddr\n");
                     requestARP(sr, ipHdr->ip_dst);
                 }
-            //}while(if_walker == 0);
+            
             Debug("About to send packet to LAN\n");
             //Edit packet
-            // rt_walker = sr->routing_table;
-            // for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-            //     Debug("Loop\n");
-            //     if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
-            //         Debug("Break\n");
-            //         break;
-            //     }
-            // }
-            // if(rt_walker == 0){
-            //     fprintf(stderr, "Something wrong with the routing table\n");
-            // }
-            // Debug("1\n");
-            // // struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
-            // // memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
-            //memcpy(etherHdr->ether_shost, if_walker->addr, ETHER_ADDR_LEN);
-            // Debug("New dest HWaddr: ");
-            // for(int i = 0; i < ETHER_ADDR_LEN; i++){
-            //     Debug("%02x:", etherHdr->ether_dhost[i]);
-            // }
-            // Debug("\n");
-            // Debug("New source HWaddr: ");
-            // for(int i = 0; i < ETHER_ADDR_LEN; i++){
-            //     Debug("%02x:", etherHdr->ether_shost[i]);
-            // }
-            // Debug("\n");
-            //Send it
-            if(sr_send_packet(sr, packet, len, rt_walker->interface)){
-                fprintf(stderr, "Failed to forward IP packet\n");
-            } //sr_vns_comm.c
             
-            Debug("2\n");
+//             for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+//                 Debug("Loop\n");
+//                 if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+//                     Debug("Break\n");
+//                     break;
+//                 }
+//             }
+//             if(rt_walker == 0){
+//                 fprintf(stderr, "Something wrong with the routing table\n");
+//             }
+//             Debug("1\n");
+//              struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
+//              memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
+//            memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
+//             Debug("New dest HWaddr: ");
+//             for(int i = 0; i < ETHER_ADDR_LEN; i++){
+//                 Debug("%02x:", etherHdr->ether_dhost[i]);
+//             }
+//             Debug("\n");
+//             Debug("New source HWaddr: ");
+//             for(int i = 0; i < ETHER_ADDR_LEN; i++){
+//                 Debug("%02x:", etherHdr->ether_shost[i]);
+//             }
+//             Debug("\n");
+            if(if_walker != 0){
+                memcpy(etherHdr->ether_shost, if_walker->addr, ETHER_ADDR_LEN);
+                //Send it
+                if(sr_send_packet(sr, packet, len, rt_walker->interface)){
+                    fprintf(stderr, "Failed to forward IP packet\n");
+                } //sr_vns_comm.c
+            }
+            
+            
+            
         }else{
             //Dest is not in LAN, so no ARP
             Debug("This goes to different network\n");
@@ -357,8 +361,8 @@ void sr_handlepacket(struct sr_instance* sr,
         Debug("Unknown packet type. Dropping...\n");
     }
     //Still need to update Routing table with each packet
-    sr_print_routing_table(sr);
-    sr_print_if_list(sr);
+//    sr_print_routing_table(sr);
+//    sr_print_if_list(sr);
     Debug("Finished handling packet\n\n");
 }/* end sr_ForwardPacket */
 

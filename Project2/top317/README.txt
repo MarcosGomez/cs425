@@ -12,6 +12,6 @@ Program 2
 *Limits
 
 *Things that work
--Responds correctly to ARP requests
--Forwards all IP protocol packets
+-Responds correctly to ARP requests and replies
+-Recognizes packet types
 -If debug mode remains on, it shows info about correctly parsing the packets
