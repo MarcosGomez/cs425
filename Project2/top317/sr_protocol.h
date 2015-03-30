@@ -87,7 +87,7 @@ struct ip
     unsigned int ip_v:4;		/* version */
     unsigned int ip_hl:4;		/* header length */
 #else
-#error "Byte ordering ot specified " 
+#error "Byte ordering not specified "
 #endif 
     uint8_t ip_tos;			/* type of service */
     uint16_t ip_len;			/* total length */
@@ -171,7 +171,7 @@ struct sr_arppkt //Size 60 bytes
     unsigned char   ar_tha[ETHER_ADDR_LEN];   /* target hardware address      */
     uint32_t        ar_tip;             /* target IP address            */
     //Padding 18
-    char padding[18];
+    //char padding[14]; //Was 18|  10 padding 4 CRC
 } __attribute__ ((packed));
 
 

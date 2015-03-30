@@ -32,7 +32,10 @@
 #include "sr_router.h"
 #include "sr_protocol.h"
 
-int ioctl_sock;
+#define BROADCAST 0xFFFFFFFFFFFF
+
+//int ioctl_sock;
+int nameCount;
 
 /*---------------------------------------------------------------------
  * Method: sr_init(void)
@@ -50,7 +53,7 @@ void sr_init(struct sr_instance* sr)
 
     /* Add initialization code here! TODO*/
     
-    //startARP(sr);
+    nameCount = 0;
     
 
 } /* -- sr_init -- */
@@ -87,7 +90,193 @@ void sr_handlepacket(struct sr_instance* sr,
 
     //Not complete?TODO
     //Read eth hdr
+    struct sr_arppkt* etherHdr = NULL;
+    etherHdr = (struct sr_arppkt*)packet;
+    struct sr_if* if_walker = 0;
+    unsigned short  type = ntohs(etherHdr->ether_type);
+    
+    //Save source and dest
+    Debug("Ethernet type is 0x%x", type);
+    if(type == ETHERTYPE_IP){
+        Debug(" (IPv4)\n");
+    }else if(type == ETHERTYPE_ARP){
+        Debug(" (ARP ");
+        if(ntohs(etherHdr->ar_op) == ARP_REQUEST){
+            Debug("Request)\n");
+        }else if(ntohs(etherHdr->ar_op) == ARP_REPLY){
+            Debug("Reply)\n");
+        }else{
+            Debug("?)\n");
+        }
+    }
+    Debug("source MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+          etherHdr->ether_shost[0],
+          etherHdr->ether_shost[1], etherHdr->ether_shost[2],
+          etherHdr->ether_shost[3],etherHdr->ether_shost[4],
+          etherHdr->ether_shost[5]);
+    Debug("destination MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+          etherHdr->ether_dhost[0],
+          etherHdr->ether_dhost[1], etherHdr->ether_dhost[2],
+          etherHdr->ether_dhost[3],etherHdr->ether_dhost[4],
+          etherHdr->ether_dhost[5]);
+    
+    if(type == ETHERTYPE_IP){
+        struct ip* ipHdr = NULL;
+        struct sr_rt* rt_walker;
+        
+        ipHdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
+        
+        Debug("Source IP address: %s\n", inet_ntoa(*((struct in_addr*)(&ipHdr->ip_src))));
+        Debug("Destination IP address: %s\n", inet_ntoa(*((struct in_addr*)(&ipHdr->ip_dst))));
+//        if(decrementAndCheck(ipHdr) == -1){
+//            return //Drop packet
+//        }
+        
+        //Find out if dest is on same subnet
+        //AND own IP and dest IP with subnet mask. If same then same subnet. Use if
+        uint32_t destIP;
+        uint32_t myIP;
+        memcpy(&destIP, &ipHdr->ip_dst, IP_ADDR_LEN);
+        
+        for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+            if(strcmp(interface, if_walker->name) == 0){
+                break;
+            }
+        }
+        if(if_walker == 0){
+            fprintf(stderr, "Don't know my own IP Address for interface: %s!\n", interface);
+            return;
+        }
+        memcpy(&myIP, &if_walker->ip, IP_ADDR_LEN);
+        //Get mask
+        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+            if(strcmp(interface, rt_walker->interface) == 0){
+                break;
+            }
+        }
+        if(rt_walker == 0){
+            fprintf(stderr, "Couldn't fine subnet mask for this interface: %s!\n", interface);
+            return;
+        }
+        uint32_t mask;
+        memcpy(&mask, &rt_walker->mask, IP_ADDR_LEN);
+        Debug("Before mine AND dest IPs: %s", inet_ntoa(*((struct in_addr*)(&myIP))));
+        Debug(" and %s\n", inet_ntoa(*((struct in_addr*)(&destIP))));
 
+        Debug("With mask: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
+        myIP = myIP & mask;
+        destIP = destIP & mask;
+        Debug("After AND: %s and %s\n", inet_ntoa(*((struct in_addr*)(&myIP))), inet_ntoa(*((struct in_addr*)(&destIP))));
+        //If dest ip in same subnet and dont know, then send arp request
+        //If dest ip not on same LAN, then check routing table and send it
+        //If no match then send to default gateway
+        if(memcmp(&myIP, &destIP, IP_ADDR_LEN) == 0){
+            Debug("This needs to go to the local subnet\n");
+            
+            for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+                if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
+                    Debug("IP addr already in interface\n");
+                    break;
+                }
+            }
+            if(if_walker == 0){
+                Debug("Need to send ARP request to find HWAddr\n");
+                requestARP(sr, ipHdr->ip_dst);
+            }
+        }
+        
+        
+        
+        //Check if dest in routing table
+        
+        //Then check interfaces for next HWAddr
+        
+//        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+//            if(memcmp(etherHdr->ether_dhost, rt_walker->dest, ETHER_ADDR_LEN) == 0){
+//                Debug("This destination is already in my routing table\n");
+//                break;
+//            }
+//        }
+        for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+            if(memcmp(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN) == 0){
+                Debug("I already know this MAC address\n");
+                break;
+            }
+        }
+        
+        if(if_walker == 0){
+            Debug("Destination not in interface, need to send ARP request!!\n");
+            
+        }
+        
+        
+        //forward packet to all other interfaces
+//        Debug("Forwarding packet to all other interfaces\n");
+//        
+//        //Continue until end of list
+//        for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
+//            Debug("Searching through interfaces...\n");
+//            if(strcmp(if_walker->name, interface) != 0){
+//                //Change source to my own
+//                memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+//                Debug("Forwarding to interface %s\n", if_walker->name);
+//                if(sr_send_packet(sr, packet, len, if_walker->name)){
+//                    fprintf(stderr, "Failed to forward IP packet\n");
+//                } //sr_vns_comm.c
+//                
+//            }
+//            
+//        }
+
+    }else if(type == ETHERTYPE_ARP){
+        
+        
+        
+        struct sr_arphdr* arpHdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
+        
+        Debug("Source of ARP's HWaddr: ");
+        for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            Debug("%02x:", arpHdr->ar_sha[i]);
+        }
+        Debug("\n");
+        Debug("Source IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arpHdr->ar_sip))));
+        
+        
+        Debug("Target of ARP's HWaddr: ");
+        for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            Debug("%02x:", arpHdr->ar_tha[i]);
+        }
+        Debug("\n");
+        Debug("Target IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arpHdr->ar_tip))));
+        
+        //Compare target IP to myself
+        
+        for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+            if(strcmp(if_walker->name, interface) == 0){
+                Debug("My IP is %s\n", inet_ntoa(*((struct in_addr*)(&if_walker->ip))));
+                if(memcmp(&if_walker->ip, &arpHdr->ar_tip, IP_ADDR_LEN) == 0){
+                    Debug("This ARP request is for me!\n");
+                    if(ntohs(etherHdr->ar_op) == ARP_REQUEST){
+                        //Send ARP reply
+                        replyARP(sr, packet, len, if_walker);
+                    }else if(ntohs(etherHdr->ar_op) == ARP_REPLY){
+                        //Add ARP reply to routingTable/Interface
+                        updateARPCache(sr, packet);
+                    }
+                    
+                    
+                    break;
+                }
+
+            }
+        }
+        
+    }else{
+        Debug("Unknown packet type. Dropping...\n");
+    }
+    //Still need to update Routing table with each packet
+    
+    Debug("Finished handling packet\n\n");
 }/* end sr_ForwardPacket */
 
 
@@ -104,20 +293,128 @@ on the virtual topology and your own router. Your job is to make the router full
 code. More specifically, you'll need to implement ARP and basic IP forwarding.
 */
 
-void startARP(struct sr_instance* sr){
+//Receives and ARP Reply packet to this router
+//Update Interface
+void updateARPCache(struct sr_instance* sr, uint8_t * packet)
+{
+    struct sr_arppkt* arppkt = (struct sr_arppkt*)packet;
+    char newName[sr_IFACE_NAMELEN] = "arp";
+    char num[12];
+    Debug("Updating ARP Cache\n");
+    sprintf(num, "%d", nameCount);
+    strcat(newName, num);
+    Debug("New interface called %s\n", newName);
+    nameCount++;
     
-    struct in_addr my_in_addr;
-    unsigned char hwaddr[ETHER_ADDR_LEN];
+    sr_add_interface(sr, newName);
+    sr_set_ether_addr(sr, arppkt->ar_tha);
+    sr_set_ether_ip(sr, arppkt->ar_sip);
+    Debug("New interface list\n");
+    sr_print_if_list(sr);
+}
+
+int decrementAndCheck(struct ip* ipHdr){
+    //Check checksum
+    uint16_t checksum;
+    memcpy(&checksum, &ipHdr->ip_sum, 2);
+    Debug("Checksum originally = %u\n", checksum);
+    checksum = ipHdr->ip_sum;
+    Debug("Checksum originally = %u\n", checksum);
+    checksum = ip_checksum(ipHdr, ipHdr->ip_hl);
+    Debug("Checksum = %u\n", checksum);
+    ipHdr->ip_sum = 0;
+    //memcpy(ipHdr->ip_sum, zero, 2);
+    memset(&ipHdr->ip_sum, 0, 2);
+    Debug("Checksum zeroed  %u\n", ipHdr->ip_sum);
+    uint16_t hLen = ipHdr->ip_hl;//NUmber of 32 bit words
+    Debug("Header length is %u\n", hLen);
+    
+    checksum = ip_checksum(ipHdr, hLen);
+    Debug("Checksum = %u\n", checksum);
+    checksum = ip_checksum(ipHdr, hLen);
+    Debug("Checksum = %u\n", checksum);
+    checksum = chksum(ipHdr, hLen);
+    Debug("Checksum new = %u\n", checksum);
+    
+    //Decrement TTL
+    Debug("Decremented TTL from %u", ipHdr->ip_ttl);
+    ipHdr->ip_ttl--;
+    Debug(" to %u\n", ipHdr->ip_ttl);
+    //Drop packet if ttl == 0
+    if(ipHdr->ip_ttl == 0){
+        return -1;
+    }
+    //Update checksum
+    return 0;
+}
+
+//Reply knowing that you are the target
+void replyARP(struct sr_instance* sr,
+              uint8_t * packet/* lent */, //Packet buffer
+              unsigned int len, //Packet length
+              struct sr_if* iface/* lent */) //Recieving interface
+{
+    struct sr_arppkt* arppkt = (struct sr_arppkt*)packet;
+    
+    //Change ether hdr
+    memcpy(arppkt->ether_dhost, arppkt->ether_shost, ETHER_ADDR_LEN);
+    memcpy(arppkt->ether_shost, iface->addr, ETHER_ADDR_LEN);
+    //->ether_type is same  htons(ETHERTYPE_ARP)
+    
+    //Change arp hdr
+    //1st 4 have same format and length
+    arppkt->ar_op = htons(ARP_REPLY);
+    //Target first
+    memcpy(arppkt->ar_tha, arppkt->ar_sha, ETHER_ADDR_LEN);
+    memcpy(&arppkt->ar_tip, &arppkt->ar_sip, ETHER_ADDR_LEN);
+    //Then sender
+    memcpy(arppkt->ar_sha, iface->addr, ETHER_ADDR_LEN);
+    memcpy(&arppkt->ar_sip, &iface->ip, IP_ADDR_LEN);
+    
+    Debug("Info for ARP reply packet\n");
+    Debug("Source of ARP's HWaddr: ");
+    for(int i = 0; i < ETHER_ADDR_LEN; i++){
+        Debug("%02x:", arppkt->ar_sha[i]);
+    }
+    Debug("\n");
+    Debug("Source IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt->ar_sip))));
+    
+    
+    Debug("Target of ARP's HWaddr: ");
+    for(int i = 0; i < ETHER_ADDR_LEN; i++){
+        Debug("%02x:", arppkt->ar_tha[i]);
+    }
+    Debug("\n");
+    Debug("Target IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt->ar_tip))));
+    
+    
+    if(sr_send_packet(sr, packet, len, iface->name)){
+        fprintf(stderr, "Failed to send ARP reply\n");
+    } //sr_vns_comm.c
+    Debug("Successfully sent ARP Reply\n");
+}
+
+
+
+//Sends arp request to given target IP
+void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
+    
+//    struct in_addr my_in_addr;
+//    unsigned char hwaddr[ETHER_ADDR_LEN];
     void *buf = NULL; //1 byte at a time uint8_t
     unsigned int len = 0; //Later use sizeof to finde how many bytes
-    const char* iface = "eth1"; //eth1 doesnt exist // prob with eth header
-    char* sender = "eth2"; //"" = current computer
+    struct sr_rt* rt_walker = NULL;
+    struct sr_if* if_walker = NULL;
+    //const char* iface = "eth1"; //eth1 doesnt exist // prob with eth header
+    //char* sender = "eth2"; //"" = current computer
     
     struct sr_arppkt arppkt;
     
     
     /* REQUIRES */
     assert(sr);
+    
+    Debug("Creating ARP request\n");
     
     //    sr_add_interface(sr, iface);
     //    sr_set_ether_addr(sr ,);
@@ -126,13 +423,14 @@ void startARP(struct sr_instance* sr){
     
     //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
     //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
-    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if(ioctl_sock < 0){
-        fprintf(stderr, "startARP: Unable to create socket\n");
-    }
     
-    get_hw_addr(hwaddr, sender);
-    get_ip_addr(&my_in_addr, sender);
+//    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+//    if(ioctl_sock < 0){
+//        fprintf(stderr, "requestARP: Unable to create socket\n");
+//    }
+    
+//    get_hw_addr(hwaddr, sender);
+//    get_ip_addr(&my_in_addr, sender);
     
     //Send out ARP request to all servers on LAN to build table
     //Create ARP request packet
@@ -149,138 +447,264 @@ void startARP(struct sr_instance* sr){
     
     //Sender/Target IP/Hardware addresses
     
+    Debug("Target MAC: ");
     for(int i = 0; i < ETHER_ADDR_LEN; i++){
-        arppkt.ar_sha[i] = hwaddr[i];
-        arppkt.ether_shost[i] = hwaddr[i];
+        arppkt.ar_tha[i] = 0x00;
+        arppkt.ether_dhost[i] = 0xff;//Broadcast MAC addresses
+        Debug("%02x:", arppkt.ar_tha[i]);
     }
+    Debug("\n");
     
-    
+    Debug("Destination MAC(Ethernet): ");
     for(int i = 0; i < ETHER_ADDR_LEN; i++){
-        arppkt.ar_tha[i] = 0xff; //Broadcast MAC addresses ff:ff:ff:ff:ff:ff
-        arppkt.ether_dhost[i] = 0xff;
+        Debug("%02x:", arppkt.ether_dhost[i]);
     }
+    Debug("\n");
     
-    memcpy(&arppkt.ar_sip, &my_in_addr, IP_ADDR_LEN);
-    memcpy(&arppkt.ar_tip, &my_in_addr, IP_ADDR_LEN);
-    Debug("starARP: memcpyed IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt.ar_sip))));
+    
+    memcpy(&arppkt.ar_tip, &target_in_addr, IP_ADDR_LEN);
+    Debug("requestARP: target IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt.ar_tip))));
     
     
     
     //Find out which interface to send them
-    iface = "eth1";
+    
     //Set buffer
     buf = &arppkt;
     len = sizeof(arppkt);
-    Debug("startARP: len = %u\n", len);
+    Debug("requestARP: len = %u\n", len);
     
     
-    //Send packet
-    if(sr_send_packet(sr, buf, len, iface)){
-        fprintf(stderr, "Failed to send initial ARP request\n");
-    } //sr_vns_comm.c
-}
-
-
-void get_ip_addr(struct in_addr* in_addr,char* str)
-{
-    struct ifreq ifr;
-    struct sockaddr_in sin;
-    
-    if(strcmp(str, "") == 0){
-        Debug("Using own IP address\n");
-        struct ifconf ifc;
-        char buffer[1024];
-        
-        
-        ifc.ifc_len = sizeof(buffer);
-        ifc.ifc_buf = buffer;
-        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
-            fprintf(stderr, "get_ip_addr: socket error\n");
-        }
-        
-        struct ifreq* it = ifc.ifc_req;
-        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
-        
-        for(; it != end; ++it){
-            strcpy(ifr.ifr_name, it->ifr_name);
-            ifr.ifr_addr.sa_family = it->ifr_addr.sa_family;
-            //ifr.ifr_addr.sa_family = AF_INET;
-            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
-                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
-                    if(ioctl(ioctl_sock, SIOCGIFADDR, &ifr) == 0){
-                        //Success
-                        break;
-                    }else{
-                        die("Failed to get IP address for the interface");
+    //Send packet to all non-gateways
+    //source ip and MAC addr changes each time
+    uint32_t zero = 0;
+    for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+        //Check all entries in routing table
+        if(memcmp(&rt_walker->gw, &zero, IP_ADDR_LEN) == 0){
+            Debug("Need to send ARP request through interface %s\n", rt_walker->interface);
+            //Get HWAddr for given interface
+            for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+                if(strcmp(rt_walker->interface, if_walker->name) == 0){
+                    //Set source/sender MAC
+                    memcpy(arppkt.ar_sha, if_walker->addr, ETHER_ADDR_LEN);
+                    memcpy(arppkt.ether_shost, if_walker->addr, ETHER_ADDR_LEN);
+                    Debug("Source dest MAC: ");
+                    for(int i = 0; i < ETHER_ADDR_LEN; i++){
+                        Debug("%02x:", arppkt.ar_sha[i]);
                     }
+                    Debug("\n");
+                    //Set sender IP
+                    memcpy(&arppkt.ar_sip, &if_walker->ip, IP_ADDR_LEN);
+                    Debug("requestARP: sender IP address: %s\n", inet_ntoa(*((struct in_addr*)(&arppkt.ar_sip))));
+                    
+                    if(sr_send_packet(sr, buf, len, rt_walker->interface)){
+                        fprintf(stderr, "Failed to send initial ARP request\n");
+                    } //sr_vns_comm.c
+
+                    break;
                 }
-            }else{
-                fprintf(stderr, "get_ip_addr: Error inside loop with flags\n");
             }
+            if(if_walker == 0){
+                fprintf(stderr, "requestARP: Error, routing table and interface not in sync\n"
+                        "Not send ARP Request\n");
+                return;
+            }
+            
+            
         }
-    }else{
-        strcpy(ifr.ifr_name, str);
-        ifr.ifr_addr.sa_family = AF_INET;
-        if (ioctl(ioctl_sock, SIOCGIFADDR, &ifr))
-            die("Failed to get IP address for the interface");
     }
-
-
-    memcpy(&sin, &ifr.ifr_addr, sizeof(struct sockaddr_in));
-    in_addr->s_addr = sin.sin_addr.s_addr;
-    Debug("IP address: %s\n", inet_ntoa(*in_addr));
+    Debug("Successfully Sent ARP Request\n");
+    
 }
 
 
-
-void get_hw_addr(u_char* buf,char* str)
-{
-  
-    struct ifreq ifr;
-    
-    if(strcmp(str, "") == 0){
-        Debug("Using own hardware address\n");
-        struct ifconf ifc;
-        char buffer[1024];
-        
-        
-        ifc.ifc_len = sizeof(buffer);
-        ifc.ifc_buf = buffer;
-        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
-            fprintf(stderr, "get_hw_addr: socket error\n");
-        }
-        
-        struct ifreq* it = ifc.ifc_req;
-        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
-        
-        for(; it != end; ++it){
-            strcpy(ifr.ifr_name, it->ifr_name);
-            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
-                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
-                    if(ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) == 0){
-                        //Success
-                        break;
-                    }else{
-                        die("Failed to get own MAC address for the interface");
-                    }
-                }
-            }else{
-                fprintf(stderr, "get_hw_addr: Error inside loop with flags\n");
-            }
-        }
-    }else{
-        strcpy(ifr.ifr_name, str);
-        if (ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) < 0)
-            die("Failed to get MAC address for the interface");
-    }
-    
-
-    memcpy(buf, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-    Debug("MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
-}
+//void get_ip_addr(struct in_addr* in_addr,char* str)
+//{
+//    struct ifreq ifr;
+//    struct sockaddr_in sin;
+//    
+//    if(strcmp(str, "") == 0){
+//        Debug("Using own IP address\n");
+//        struct ifconf ifc;
+//        char buffer[1024];
+//        
+//        
+//        ifc.ifc_len = sizeof(buffer);
+//        ifc.ifc_buf = buffer;
+//        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
+//            fprintf(stderr, "get_ip_addr: socket error\n");
+//        }
+//        
+//        struct ifreq* it = ifc.ifc_req;
+//        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
+//        
+//        for(; it != end; ++it){
+//            strcpy(ifr.ifr_name, it->ifr_name);
+//            ifr.ifr_addr.sa_family = it->ifr_addr.sa_family;
+//            //ifr.ifr_addr.sa_family = AF_INET;
+//            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
+//                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
+//                    if(ioctl(ioctl_sock, SIOCGIFADDR, &ifr) == 0){
+//                        //Success
+//                        break;
+//                    }else{
+//                        die("Failed to get IP address for the interface");
+//                    }
+//                }
+//            }else{
+//                fprintf(stderr, "get_ip_addr: Error inside loop with flags\n");
+//            }
+//        }
+//    }else{
+//        strcpy(ifr.ifr_name, str);
+//        ifr.ifr_addr.sa_family = AF_INET;
+//        if (ioctl(ioctl_sock, SIOCGIFADDR, &ifr))
+//            die("Failed to get IP address for the interface");
+//    }
+//
+//
+//    memcpy(&sin, &ifr.ifr_addr, sizeof(struct sockaddr_in));
+//    in_addr->s_addr = sin.sin_addr.s_addr;
+//    Debug("IP address: %s\n", inet_ntoa(*in_addr));
+//}
+//
+//
+//
+//void get_hw_addr(u_char* buf,char* str)
+//{
+//  
+//    struct ifreq ifr;
+//    
+//    if(strcmp(str, "") == 0){
+//        Debug("Using own hardware address\n");
+//        struct ifconf ifc;
+//        char buffer[1024];
+//        
+//        
+//        ifc.ifc_len = sizeof(buffer);
+//        ifc.ifc_buf = buffer;
+//        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
+//            fprintf(stderr, "get_hw_addr: socket error\n");
+//        }
+//        
+//        struct ifreq* it = ifc.ifc_req;
+//        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
+//        
+//        for(; it != end; ++it){
+//            strcpy(ifr.ifr_name, it->ifr_name);
+//            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
+//                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
+//                    if(ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) == 0){
+//                        //Success
+//                        break;
+//                    }else{
+//                        die("Failed to get own MAC address for the interface");
+//                    }
+//                }
+//            }else{
+//                fprintf(stderr, "get_hw_addr: Error inside loop with flags\n");
+//            }
+//        }
+//    }else{
+//        strcpy(ifr.ifr_name, str);
+//        if (ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) < 0)
+//            die("Failed to get MAC address for the interface");
+//    }
+//    
+//
+//    memcpy(buf, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+//    Debug("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
+//}
 
 void die(const char* str)
 {
     fprintf(stderr,"Error: %s\n",str);
     exit(1);
+}
+
+//Calculates checksum of ipv4 header
+//Make sure checksum field is already zeroed out
+//Length is header length
+uint16_t ip_checksum(void* vdata,size_t length) {
+    // Cast the data pointer to one that can be indexed.
+    char* data=(char*)vdata;
+    
+    // Initialise the accumulator.
+    uint64_t acc=0xffff;
+    
+    // Handle any partial block at the start of the data.
+    unsigned int offset=((uintptr_t)data)&3;
+    if (offset) {
+        size_t count=4-offset;
+        if (count>length) count=length;
+        uint32_t word=0;
+        memcpy(offset+(char*)&word,data,count);
+        acc+=ntohl(word);
+        data+=count;
+        length-=count;
+    }
+    
+    // Handle any complete 32-bit blocks.
+    char* data_end=data+(length&~3);
+    while (data!=data_end) {
+        uint32_t word;
+        memcpy(&word,data,4);
+        acc+=ntohl(word);
+        data+=4;
+    }
+    length&=3;
+    
+    // Handle any partial block at the end of the data.
+    if (length) {
+        uint32_t word=0;
+        memcpy(&word,data,length);
+        acc+=ntohl(word);
+    }
+    
+    // Handle deferred carries.
+    acc=(acc&0xffffffff)+(acc>>32);
+    while (acc>>16) {
+        acc=(acc&0xffff)+(acc>>16);
+    }
+    
+    // If the data began at an odd byte address
+    // then reverse the byte order to compensate.
+    if (offset&1) {
+        acc=((acc&0xff00)>>8)|((acc&0x00ff)<<8);
+    }
+    
+    // Return the checksum in network byte order.
+    return htons(~acc);
+}
+
+uint16_t chksum(void *vdata, size_t length){
+    
+    // Cast the data pointer to one that can be indexed.
+    char* data=(char*)vdata;
+    
+    // Initialise the accumulator.
+    uint32_t acc=0xffff;
+    
+    // Handle complete 16-bit blocks.
+    for (size_t i=0;i+1<length;i+=2) {
+        uint16_t word;
+        memcpy(&word,data+i,2);
+        acc+=ntohs(word);
+        if (acc>0xffff) {
+            acc-=0xffff;
+        }
+    }
+    
+    // Handle any partial block at the end of the data.
+    if (length&1) {
+        uint16_t word=0;
+        memcpy(&word,data+length-1,1);
+        acc+=ntohs(word);
+        if (acc>0xffff) {
+            acc-=0xffff;
+        }
+    }
+    
+    // Return the checksum in network byte order.
+    return htons(~acc);
 }

@@ -76,7 +76,12 @@ void die(const char *);
 void get_ip_addr(struct in_addr*,char*);
 void get_hw_addr(u_char*,char*);
 
-void startARP(struct sr_instance* sr);
+void requestARP(struct sr_instance* sr, struct in_addr target_in_addr);
+void replyARP(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* iface);
+void updateARPCache(struct sr_instance* sr, uint8_t * packet);
+uint16_t ip_checksum(void* vdata,size_t length);
+uint16_t chksum(void *vdata, size_t length);
+int decrementAndCheck(struct ip* ipHdr);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

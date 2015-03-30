@@ -225,8 +225,8 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
         } /* -- switch -- */
     } /* -- for -- */
 
-    printf("Router interfaces:\n");
-    sr_print_if_list(sr);
+    //printf("Router interfaces:\n");
+    //sr_print_if_list(sr);
 
     return num_entries;
 } /* -- sr_handle_hwinfo -- */
@@ -494,7 +494,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             }
             printf(" <-- Ready to process packets --> \n");
             
-            //startARP(sr);
+            
             break;
 
             /* ---------------- VNS_RTABLE ---------------- */
@@ -533,7 +533,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
  * Method: sr_ether_addrs_match_interface(..)
  * Scope: Local
  *
- * Make sure ethernet addresses are sane so we don't muck uo the system.
+ * Make sure ethernet addresses are same so we don't muck up the system.
  *
  *----------------------------------------------------------------------------*/
 
@@ -563,6 +563,18 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
     if ( memcmp( ether_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN) != 0 )
     {
         fprintf( stderr, "** Error, source address does not match interface\n");
+        Debug("It equals\n");
+        for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            //ether_hdr->ether_shost[i] = structInterface->addr[i];
+            Debug("%02x:", ether_hdr->ether_shost[i]);
+        }
+        Debug("\n");
+        Debug("Should equal\n");
+        for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            //ether_hdr->ether_shost[i] = structInterface->addr[i];
+            Debug("%02x:", iface->addr[i]);
+        }
+        Debug("\n");
         return 0;
     }
 
@@ -571,6 +583,7 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
      * to a virtual interface) ensure it is going to the correct topology
      * Note: This check should really be done server side ...
      */
+    //Debug("TODO: Destination MAC address not checked\n");
     // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 Private addresses
 
     // Dest address is ether_hdr->ether_dhost

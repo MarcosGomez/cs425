@@ -64,12 +64,12 @@ sr_dump(FILE *fp, const struct pcap_pkthdr *h, const unsigned char *sp)
         //(void)fwrite((char *)sp, h->caplen, 1, fp);
         check = fwrite(&sf_hdr, sizeof(sf_hdr), 1, fp);
         if(check < sizeof(sf_hdr)){
-          fprintf(stderr, "sr_dump: Error when writing to logfile!\n");
+          fprintf(stderr, "sr_dump: Error when writing to logfile, check if too small: %d\n", check);
         }
 
         check = fwrite((char *)sp, h->caplen, 1, fp);
         if(check < sizeof(h->caplen)){
-          fprintf(stderr, "sr_dump: Error when writing to logfile!\n");
+          fprintf(stderr, "sr_dump: Error when writing to logfile, check if too small: %d\n", check);
         }
 }
 
