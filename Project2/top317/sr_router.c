@@ -192,7 +192,7 @@ void sr_handlepacket(struct sr_instance* sr,
             fprintf(stderr, "Couldn't fine subnet mask for this interface: %s!\n", interface);
             return;
         }
-        uint32_t mask = 0xf0ffffff
+        uint32_t mask = 0xf0ffffff;
         //memcpy(&mask, &rt_walker->mask, IP_ADDR_LEN);
         Debug("Before mine AND dest IPs: %s", inet_ntoa(*((struct in_addr*)(&myIP))));
         Debug(" and %s\n", inet_ntoa(*((struct in_addr*)(&destIP))));
