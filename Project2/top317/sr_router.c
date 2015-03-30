@@ -213,7 +213,7 @@ void sr_handlepacket(struct sr_instance* sr,
             //What happens when with local LAN
             Debug("This needs to go to the local subnet\n");
             
-            do{
+            //do{
                 for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
                     if(memcmp(&ipHdr->ip_dst, &if_walker->ip, IP_ADDR_LEN) == 0){
                         Debug("IP addr (and MAC) found in interface\n");
@@ -224,20 +224,20 @@ void sr_handlepacket(struct sr_instance* sr,
                     Debug("Need to send ARP request to find HWAddr\n");
                     requestARP(sr, ipHdr->ip_dst);
                 }
-            }while(if_walker == 0);
+            //}while(if_walker == 0);
             Debug("About to send packet to LAN\n");
             //Edit packet
             rt_walker = sr->routing_table;
-            // for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-            //     Debug("Loop\n");
-            //     if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
-            //         Debug("Break\n");
-            //         break;
-            //     }
-            // }
-            // if(rt_walker == 0){
-            //     fprintf(stderr, "Something wrong with the routing table\n");
-            // }
+            for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                Debug("Loop\n");
+                if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+                    Debug("Break\n");
+                    break;
+                }
+            }
+            if(rt_walker == 0){
+                fprintf(stderr, "Something wrong with the routing table\n");
+            }
             Debug("1\n");
             // struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
             // memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
