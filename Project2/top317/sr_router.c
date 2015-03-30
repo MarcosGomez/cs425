@@ -301,7 +301,7 @@ code. More specifically, you'll need to implement ARP and basic IP forwarding.
 
 void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int ethertype, char* interface){
     uint32_t gateway = 0x00000000;
-    uint32_t mask = 0xf9ffffff;
+    uint32_t mask = 0xf8ffffff;
     Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
     Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
     if(ethertype == ETHERTYPE_IP){
