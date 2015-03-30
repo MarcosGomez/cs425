@@ -276,19 +276,19 @@ void sr_handlepacket(struct sr_instance* sr,
                         Debug("Found default router\n");
                         //CHange packet!
 
-                        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-                            if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
-                                break;
-                            }
-                        }
-                        if(rt_walker == 0){
-                            fprintf(stderr, "Something wrong with the routing table out\n");
-                        }
-                        struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
-                        memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
-                        memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
+                        // for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                        //     if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+                        //         break;
+                        //     }
+                        // }
+                        // if(rt_walker == 0){
+                        //     fprintf(stderr, "Something wrong with the routing table out\n");
+                        // }
+                        // struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
+                        // memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
+                        // memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
                        //Change source to my own
-                        //memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+                        memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
                        //memcpy( etherHdr->ether_dhost, if_walker->)
                        Debug("Forwarding to interface, which should be defualt:%s\n", if_walker->name);
                        if(sr_send_packet(sr, packet, len, if_walker->name)){
