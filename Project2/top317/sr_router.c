@@ -119,25 +119,52 @@ void sr_handlepacket(struct sr_instance* sr,
           etherHdr->ether_dhost[1], etherHdr->ether_dhost[2],
           etherHdr->ether_dhost[3],etherHdr->ether_dhost[4],
           etherHdr->ether_dhost[5]);
-    
+
+    /*-----------------------------------------------------------------------------------------------------*/
     //Check if need to add to routing table
     if(type == ETHERTYPE_IP){
         updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
     }else if(type == ETHERTYPE_ARP){
         updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
     }
-
+    /*-----------------------------------------------------------------------------------------------------*/
     if(type == ETHERTYPE_IP){
         struct ip* ipHdr = NULL;
         struct sr_rt* rt_walker;
+
+        //MAC first
+        for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
+            if(memcmp(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN) == 0){
+                Debug("I already know this MAC address\n");
+                break;
+            }
+        }
+        if(if_walker == 0){
+            Debug("MAC destination not in interface, need to send ARP request TODO!!\n");
+            
+        }
+        //forward packet to all other interfaces
+       
+       //Flood to all other nodes
+       //Continue until end of list
+       //  Debug("Forwarding packet to all other interfaces\n");
+       // for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
+       //     Debug("Searching through interfaces...\n");
+       //     if(strcmp(if_walker->name, interface) != 0){
+       //         //Change source to my own
+       //         memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+       //         Debug("Forwarding to interface %s\n", if_walker->name);
+       //         if(sr_send_packet(sr, packet, len, if_walker->name)){
+       //             fprintf(stderr, "Failed to forward IP packet\n");
+       //         } //sr_vns_comm.c 
+       //     }
+       // }
         
         ipHdr = (struct ip*)(packet + sizeof(struct sr_ethernet_hdr));
         
         Debug("Source IP address: %s\n", inet_ntoa(*((struct in_addr*)(&ipHdr->ip_src))));
         Debug("Destination IP address: %s\n", inet_ntoa(*((struct in_addr*)(&ipHdr->ip_dst))));
-//        if(decrementAndCheck(ipHdr) == -1){
-//            return //Drop packet
-//        }
+
         
         //Find out if dest is on same subnet
         //AND own IP and dest IP with subnet mask. If same then same subnet. Use if
@@ -174,12 +201,15 @@ void sr_handlepacket(struct sr_instance* sr,
         myIP = myIP & mask;
         destIP = destIP & mask;
         Debug("After AND: %s and %s\n", inet_ntoa(*((struct in_addr*)(&myIP))), inet_ntoa(*((struct in_addr*)(&destIP))));
+
+        /*-----------------------------------------------------------------------------------------------------*/
         //If dest ip in same subnet and dont know, then send arp request
         //If dest ip not on same LAN, then check routing table and send it
         //If no match then send to default gateway
 
         //Check mask
         if(memcmp(&myIP, &destIP, IP_ADDR_LEN) == 0){
+            //What happens when with local LAN
             Debug("This needs to go to the local subnet\n");
             
             for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
@@ -193,6 +223,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 requestARP(sr, ipHdr->ip_dst);
             }
         }else{
+            //Dest is not in LAN, so no ARP
             //Forward to default
             uint32_t zip = 0;
             for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
@@ -209,10 +240,11 @@ void sr_handlepacket(struct sr_instance* sr,
                    Debug("Searching through interfaces...\n");
                    if(strcmp(if_walker->name, rt_walker->interface) == 0){
                         Debug("Found default router\n");
+                        //CHange packet!
                        //Change source to my own
                        memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
                        //memcpy( etherHdr->ether_dhost, if_walker->)
-                       Debug("Forwarding to interface %s\n", if_walker->name);
+                       Debug("Forwarding to interface, which should be defualt:%s\n", if_walker->name);
                        if(sr_send_packet(sr, packet, len, if_walker->name)){
                            fprintf(stderr, "Failed to forward IP packet\n");
                        } //sr_vns_comm.c
@@ -228,47 +260,8 @@ void sr_handlepacket(struct sr_instance* sr,
         
         
         
-        //Check if dest in routing table
         
-        //Then check interfaces for next HWAddr
-        
-//        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-//            if(memcmp(etherHdr->ether_dhost, rt_walker->dest, ETHER_ADDR_LEN) == 0){
-//                Debug("This destination is already in my routing table\n");
-//                break;
-//            }
-//        }
-        for(if_walker = sr->if_list; if_walker; if_walker = if_walker->next){
-            if(memcmp(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN) == 0){
-                Debug("I already know this MAC address\n");
-                break;
-            }
-        }
-        
-        if(if_walker == 0){
-            Debug("MAC destination not in interface, need to send ARP request TODO!!\n");
-            
-        }
-        
-
-        //forward packet to all other interfaces
-       Debug("Forwarding packet to all other interfaces\n");
-       
-       //Continue until end of list
-       for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
-           Debug("Searching through interfaces...\n");
-           if(strcmp(if_walker->name, interface) != 0){
-               //Change source to my own
-               memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
-               Debug("Forwarding to interface %s\n", if_walker->name);
-               if(sr_send_packet(sr, packet, len, if_walker->name)){
-                   fprintf(stderr, "Failed to forward IP packet\n");
-               } //sr_vns_comm.c
-               
-           }
-           
-       }
-
+    /*-----------------------------------------------------------------------------------------------------*/
     }else if(type == ETHERTYPE_ARP){
         
         
@@ -341,6 +334,7 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
     struct in_addr senderIP;
     struct in_addr gw;
     struct in_addr msk;
+    struct sr_rt* rt_walker;
 
     Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
     Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
@@ -349,8 +343,18 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
         memcpy(&senderIP, &ip_pckt->ip_src, IP_ADDR_LEN);
         memcpy(&gw, &gateway, IP_ADDR_LEN);
         memcpy(&msk, &mask, IP_ADDR_LEN);
+
+        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+            if(memcmp(&rt_walker->dest, &senderIP, IP_ADDR_LEN) == 0){
+                break;
+            }
+        }
+        if(rt_walker == 0){
+            sr_add_rt_entry(sr, senderIP, gw, msk, interface);
+            Debug("Updated routing table\n");
+        }
         
-        sr_add_rt_entry(sr, senderIP, gw, msk, interface);
+        
 
     }else if(ethertype == ETHERTYPE_ARP){
         struct sr_arphdr* arp_pckt = (struct sr_arphdr*)packet;
@@ -358,10 +362,18 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
         memcpy(&gw, &gateway, IP_ADDR_LEN);
         memcpy(&msk, &mask, IP_ADDR_LEN);
         
-        sr_add_rt_entry(sr, senderIP, gw, msk, interface);
+        for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+            if(memcmp(&rt_walker->dest, &senderIP, IP_ADDR_LEN) == 0){
+                break;
+            }
+        }
+        if(rt_walker == 0){
+            sr_add_rt_entry(sr, senderIP, gw, msk, interface);
+            Debug("Updated routing table\n");
+        }
     
     }
-    Debug("Finished updating routing table\n");
+    
 }
 
 //Receives and ARP Reply packet to this router
