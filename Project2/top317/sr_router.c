@@ -236,25 +236,26 @@ void sr_handlepacket(struct sr_instance* sr,
             if(rt_walker == 0){
                 fprintf(stderr, "Something wrong with the routing table\n");
             }
+            Debug("1\n");
             //struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
             //memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
             //memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
-            Debug("New dest HWaddr: ");
-            for(int i = 0; i < ETHER_ADDR_LEN; i++){
-                Debug("%02x:", etherHdr->ether_dhost[i]);
-            }
-            Debug("\n");
-            Debug("New source HWaddr: ");
-            for(int i = 0; i < ETHER_ADDR_LEN; i++){
-                Debug("%02x:", etherHdr->ether_shost[i]);
-            }
-            Debug("\n");
+            // Debug("New dest HWaddr: ");
+            // for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            //     Debug("%02x:", etherHdr->ether_dhost[i]);
+            // }
+            // Debug("\n");
+            // Debug("New source HWaddr: ");
+            // for(int i = 0; i < ETHER_ADDR_LEN; i++){
+            //     Debug("%02x:", etherHdr->ether_shost[i]);
+            // }
+            // Debug("\n");
             //Send it
             if(sr_send_packet(sr, packet, len, rt_walker->interface)){
                 fprintf(stderr, "Failed to forward IP packet\n");
             } //sr_vns_comm.c
             
-
+            Debug("2\n");
         }else{
             //Dest is not in LAN, so no ARP
             Debug("This goes to different network\n");
