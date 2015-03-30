@@ -120,6 +120,13 @@ void sr_handlepacket(struct sr_instance* sr,
           etherHdr->ether_dhost[3],etherHdr->ether_dhost[4],
           etherHdr->ether_dhost[5]);
     
+    //Check if need to add to routing table
+    if(type == ETHERTYPE_IP){
+        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_IP, interface);
+    }else if(type == ETHERTYPE_ARP){
+        updateRoutingTable(sr, packet + sizeof(struct sr_ethernet_hdr), ETHERTYPE_ARP, interface);
+    }
+
     if(type == ETHERTYPE_IP){
         struct ip* ipHdr = NULL;
         struct sr_rt* rt_walker;
@@ -231,7 +238,6 @@ void sr_handlepacket(struct sr_instance* sr,
     }else if(type == ETHERTYPE_ARP){
         
         
-        
         struct sr_arphdr* arpHdr = (struct sr_arphdr*)(packet + sizeof(struct sr_ethernet_hdr));
         
         Debug("Source of ARP's HWaddr: ");
@@ -293,6 +299,24 @@ on the virtual topology and your own router. Your job is to make the router full
 code. More specifically, you'll need to implement ARP and basic IP forwarding.
 */
 
+void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int ethertype, char* interface){
+    uint32_t gateway = 0x00000000;
+    uint32_t mask = 0x0fffffff;
+    Debug("This default gateway is: %s\n", inet_ntoa(*((struct in_addr*)(&gateway))));
+    Debug("This default mask is: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
+    if(ethertype == ETHERTYPE_IP){
+        //struct ip* ip_pckt = (struct ip*)packet;
+        
+        //sr_add_rt_entry(sr, (struct in_addr) ip_pckt->ip_src, struct in_addr gw, struct in_addr mask, interface);
+
+    }else if(ethertype == ETHERTYPE_ARP){
+        //struct sr_arp_hdr* arp_pckt = (struct sr_arp_hdr*)packet;
+        
+
+    }
+    Debug("Finished updating routing table\n");
+}
+
 //Receives and ARP Reply packet to this router
 //Update Interface
 void updateARPCache(struct sr_instance* sr, uint8_t * packet)
@@ -307,7 +331,7 @@ void updateARPCache(struct sr_instance* sr, uint8_t * packet)
     nameCount++;
     
     sr_add_interface(sr, newName);
-    sr_set_ether_addr(sr, arppkt->ar_tha);
+    sr_set_ether_addr(sr, arppkt->ar_tha);//Which MAC address?
     sr_set_ether_ip(sr, arppkt->ar_sip);
     Debug("New interface list\n");
     sr_print_if_list(sr);
