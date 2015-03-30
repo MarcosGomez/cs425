@@ -224,7 +224,7 @@ void sr_handlepacket(struct sr_instance* sr,
                     Debug("Need to send ARP request to find HWAddr\n");
                     requestARP(sr, ipHdr->ip_dst);
                 }
-            }while(if_walker != 0)
+            }while(if_walker != 0);
             Debug("About to send packet to LAN\n");
             //Edit packet
             
