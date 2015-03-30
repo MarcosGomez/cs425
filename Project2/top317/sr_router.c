@@ -228,20 +228,20 @@ void sr_handlepacket(struct sr_instance* sr,
             Debug("About to send packet to LAN\n");
             //Edit packet
             // rt_walker = sr->routing_table;
-            // for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
-            //     Debug("Loop\n");
-            //     if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
-            //         Debug("Break\n");
-            //         break;
-            //     }
-            // }
+            for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                Debug("Loop\n");
+                if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+                    Debug("Break\n");
+                    break;
+                }
+            }
             // if(rt_walker == 0){
             //     fprintf(stderr, "Something wrong with the routing table\n");
             // }
             // Debug("1\n");
             // // struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
             // // memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
-            // // memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
+            memcpy(etherHdr->ether_shost, if_walker->addr, ETHER_ADDR_LEN);
             // Debug("New dest HWaddr: ");
             // for(int i = 0; i < ETHER_ADDR_LEN; i++){
             //     Debug("%02x:", etherHdr->ether_dhost[i]);
