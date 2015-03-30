@@ -229,7 +229,9 @@ void sr_handlepacket(struct sr_instance* sr,
             //Edit packet
             
             for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                Debug("Loop\n");
                 if(memcmp(&rt_walker->dest, &if_walker->ip, IP_ADDR_LEN) == 0){
+                    Debug("Break\n");
                     break;
                 }
             }
