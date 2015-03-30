@@ -239,9 +239,9 @@ void sr_handlepacket(struct sr_instance* sr,
             //     fprintf(stderr, "Something wrong with the routing table\n");
             // }
             Debug("1\n");
-            struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
-            memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
-            memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
+            // struct sr_if* baseIF = sr_get_interface(sr, rt_walker->interface);
+            // memcpy(etherHdr->ether_dhost, if_walker->addr, ETHER_ADDR_LEN);
+            // memcpy(etherHdr->ether_shost, baseIF->addr, ETHER_ADDR_LEN);
             Debug("New dest HWaddr: ");
             for(int i = 0; i < ETHER_ADDR_LEN; i++){
                 Debug("%02x:", etherHdr->ether_dhost[i]);
