@@ -177,6 +177,8 @@ void sr_handlepacket(struct sr_instance* sr,
         //If dest ip in same subnet and dont know, then send arp request
         //If dest ip not on same LAN, then check routing table and send it
         //If no match then send to default gateway
+
+        //Check mask
         if(memcmp(&myIP, &destIP, IP_ADDR_LEN) == 0){
             Debug("This needs to go to the local subnet\n");
             
@@ -189,6 +191,37 @@ void sr_handlepacket(struct sr_instance* sr,
             if(if_walker == 0){
                 Debug("Need to send ARP request to find HWAddr\n");
                 requestARP(sr, ipHdr->ip_dst);
+            }
+        }else{
+            //Forward to default
+            for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+                if(rt_walker->dest == 0){
+                    Debug("Found the default router at %s\n", rt_walker->interface);
+                    break;
+                }
+            }
+            if(rt_walker == 0){
+                fprintf(stderr, "Something went wrong finding default router\n");
+            }else{
+                //Continue until end of list
+               for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
+                   Debug("Searching through interfaces...\n");
+                   if(strcmp(if_walker->name, rt_walker->interface) == 0){
+                        Debug("Found default router\n");
+                       //Change source to my own
+                       memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+                       //memcpy( etherHdr->ether_dhost, if_walker->)
+                       Debug("Forwarding to interface %s\n", if_walker->name);
+                       if(sr_send_packet(sr, packet, len, if_walker->name)){
+                           fprintf(stderr, "Failed to forward IP packet\n");
+                       } //sr_vns_comm.c
+                       break;
+                   }
+                   
+                }
+                if(if_walker == 0){
+                    Debug("Couldn't find default router\n");
+                }
             }
         }
         
@@ -212,28 +245,28 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         
         if(if_walker == 0){
-            Debug("Destination not in interface, need to send ARP request!!\n");
+            Debug("MAC destination not in interface, need to send ARP request TODO!!\n");
             
         }
         
-        
+
         //forward packet to all other interfaces
-//        Debug("Forwarding packet to all other interfaces\n");
-//        
-//        //Continue until end of list
-//        for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
-//            Debug("Searching through interfaces...\n");
-//            if(strcmp(if_walker->name, interface) != 0){
-//                //Change source to my own
-//                memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
-//                Debug("Forwarding to interface %s\n", if_walker->name);
-//                if(sr_send_packet(sr, packet, len, if_walker->name)){
-//                    fprintf(stderr, "Failed to forward IP packet\n");
-//                } //sr_vns_comm.c
-//                
-//            }
-//            
-//        }
+       Debug("Forwarding packet to all other interfaces\n");
+       
+       //Continue until end of list
+       for(if_walker = sr->if_list;if_walker;if_walker = if_walker->next){
+           Debug("Searching through interfaces...\n");
+           if(strcmp(if_walker->name, interface) != 0){
+               //Change source to my own
+               memcpy( etherHdr->ether_shost , if_walker->addr, ETHER_ADDR_LEN);
+               Debug("Forwarding to interface %s\n", if_walker->name);
+               if(sr_send_packet(sr, packet, len, if_walker->name)){
+                   fprintf(stderr, "Failed to forward IP packet\n");
+               } //sr_vns_comm.c
+               
+           }
+           
+       }
 
     }else if(type == ETHERTYPE_ARP){
         
@@ -281,7 +314,8 @@ void sr_handlepacket(struct sr_instance* sr,
         Debug("Unknown packet type. Dropping...\n");
     }
     //Still need to update Routing table with each packet
-    
+    sr_print_routing_table(sr);
+    sr_print_if_list(sr);
     Debug("Finished handling packet\n\n");
 }/* end sr_ForwardPacket */
 
@@ -432,7 +466,7 @@ void replyARP(struct sr_instance* sr,
 
 
 
-//Sends arp request to given target IP
+//Sends arp request of given target IP to all non-gateways
 void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     
 //    struct in_addr my_in_addr;
@@ -441,8 +475,7 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     unsigned int len = 0; //Later use sizeof to finde how many bytes
     struct sr_rt* rt_walker = NULL;
     struct sr_if* if_walker = NULL;
-    //const char* iface = "eth1"; //eth1 doesnt exist // prob with eth header
-    //char* sender = "eth2"; //"" = current computer
+   
     
     struct sr_arppkt arppkt;
     
@@ -452,21 +485,7 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
     
     Debug("Creating ARP request\n");
     
-    //    sr_add_interface(sr, iface);
-    //    sr_set_ether_addr(sr ,);
-    //    sr_set_ether_ip(sr, uint32_t);
-    
-    
-    //ioctl_sock = socket(AF_INET, SOCK_PACKET, htons(ETH_P_RARP));
-    //ioctl_sock = socket(SOL_SOCKET, SOCK_RAW, ETHERTYPE_REVARP);
-    
-//    ioctl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-//    if(ioctl_sock < 0){
-//        fprintf(stderr, "requestARP: Unable to create socket\n");
-//    }
-    
-//    get_hw_addr(hwaddr, sender);
-//    get_ip_addr(&my_in_addr, sender);
+   
     
     //Send out ARP request to all servers on LAN to build table
     //Create ARP request packet
@@ -554,103 +573,7 @@ void requestARP(struct sr_instance* sr, struct in_addr target_in_addr){
 }
 
 
-//void get_ip_addr(struct in_addr* in_addr,char* str)
-//{
-//    struct ifreq ifr;
-//    struct sockaddr_in sin;
-//    
-//    if(strcmp(str, "") == 0){
-//        Debug("Using own IP address\n");
-//        struct ifconf ifc;
-//        char buffer[1024];
-//        
-//        
-//        ifc.ifc_len = sizeof(buffer);
-//        ifc.ifc_buf = buffer;
-//        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
-//            fprintf(stderr, "get_ip_addr: socket error\n");
-//        }
-//        
-//        struct ifreq* it = ifc.ifc_req;
-//        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
-//        
-//        for(; it != end; ++it){
-//            strcpy(ifr.ifr_name, it->ifr_name);
-//            ifr.ifr_addr.sa_family = it->ifr_addr.sa_family;
-//            //ifr.ifr_addr.sa_family = AF_INET;
-//            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
-//                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
-//                    if(ioctl(ioctl_sock, SIOCGIFADDR, &ifr) == 0){
-//                        //Success
-//                        break;
-//                    }else{
-//                        die("Failed to get IP address for the interface");
-//                    }
-//                }
-//            }else{
-//                fprintf(stderr, "get_ip_addr: Error inside loop with flags\n");
-//            }
-//        }
-//    }else{
-//        strcpy(ifr.ifr_name, str);
-//        ifr.ifr_addr.sa_family = AF_INET;
-//        if (ioctl(ioctl_sock, SIOCGIFADDR, &ifr))
-//            die("Failed to get IP address for the interface");
-//    }
-//
-//
-//    memcpy(&sin, &ifr.ifr_addr, sizeof(struct sockaddr_in));
-//    in_addr->s_addr = sin.sin_addr.s_addr;
-//    Debug("IP address: %s\n", inet_ntoa(*in_addr));
-//}
-//
-//
-//
-//void get_hw_addr(u_char* buf,char* str)
-//{
-//  
-//    struct ifreq ifr;
-//    
-//    if(strcmp(str, "") == 0){
-//        Debug("Using own hardware address\n");
-//        struct ifconf ifc;
-//        char buffer[1024];
-//        
-//        
-//        ifc.ifc_len = sizeof(buffer);
-//        ifc.ifc_buf = buffer;
-//        if(ioctl(ioctl_sock, SIOCGIFCONF, &ifc) == -1){
-//            fprintf(stderr, "get_hw_addr: socket error\n");
-//        }
-//        
-//        struct ifreq* it = ifc.ifc_req;
-//        const struct ifreq* const end = it + (ifc.ifc_len /sizeof(struct ifreq));
-//        
-//        for(; it != end; ++it){
-//            strcpy(ifr.ifr_name, it->ifr_name);
-//            if(ioctl(ioctl_sock, SIOCGIFFLAGS, &ifr) == 0){
-//                if(!(ifr.ifr_flags & IFF_LOOPBACK)){//don't count loopback
-//                    if(ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) == 0){
-//                        //Success
-//                        break;
-//                    }else{
-//                        die("Failed to get own MAC address for the interface");
-//                    }
-//                }
-//            }else{
-//                fprintf(stderr, "get_hw_addr: Error inside loop with flags\n");
-//            }
-//        }
-//    }else{
-//        strcpy(ifr.ifr_name, str);
-//        if (ioctl(ioctl_sock, SIOCGIFHWADDR, &ifr) < 0)
-//            die("Failed to get MAC address for the interface");
-//    }
-//    
-//
-//    memcpy(buf, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-//    Debug("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", *(buf), *(buf+1), *(buf+2), *(buf+3),*(buf+4), *(buf+5));
-//}
+
 
 void die(const char* str)
 {

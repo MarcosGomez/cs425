@@ -73,8 +73,7 @@ void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 
 void die(const char *);
-void get_ip_addr(struct in_addr*,char*);
-void get_hw_addr(u_char*,char*);
+
 
 void requestARP(struct sr_instance* sr, struct in_addr target_in_addr);
 void replyARP(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* iface);
