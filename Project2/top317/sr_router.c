@@ -345,6 +345,8 @@ void updateRoutingTable(struct sr_instance* sr, uint8_t* packet, unsigned int et
         memcpy(&msk, &mask, IP_ADDR_LEN);
 
         for(rt_walker = sr->routing_table; rt_walker; rt_walker = rt_walker->next){
+            Debug("Comparing IP address: %s", inet_ntoa(*((struct in_addr*)(&senderIP))));
+            Debug(" to RT IP address: %s\n", inet_ntoa(*((struct in_addr*)(&rt_walker->dest))));
             if(memcmp(&rt_walker->dest, &senderIP, IP_ADDR_LEN) == 0){
                 break;
             }
@@ -390,7 +392,7 @@ void updateARPCache(struct sr_instance* sr, uint8_t * packet)
     nameCount++;
     
     sr_add_interface(sr, newName);
-    sr_set_ether_addr(sr, arppkt->ar_tha);//Which MAC address?
+    sr_set_ether_addr(sr, arppkt->ar_sha);//Which MAC address?
     sr_set_ether_ip(sr, arppkt->ar_sip);
     Debug("New interface list\n");
     sr_print_if_list(sr);
