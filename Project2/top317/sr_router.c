@@ -201,7 +201,7 @@ void sr_handlepacket(struct sr_instance* sr,
         myIP = myIP & mask;
         destIP = destIP & mask;
         Debug("After AND: %s ", inet_ntoa(*((struct in_addr*)(&myIP))));
-        Debug("and %s\n",  inet_ntoa(*((struct in_addr*)(&destIP)))));
+        Debug("and %s\n",  inet_ntoa(*((struct in_addr*)(&destIP))));
 
         /*-----------------------------------------------------------------------------------------------------*/
         //If dest ip in same subnet and dont know, then send arp request
