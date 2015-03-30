@@ -200,7 +200,7 @@ void sr_handlepacket(struct sr_instance* sr,
         Debug("With mask: %s\n", inet_ntoa(*((struct in_addr*)(&mask))));
         myIP = myIP & mask;
         destIP = destIP & mask;
-        Debug("After AND: %s ", inet_ntoa(*((struct in_addr*)(&myIP)));
+        Debug("After AND: %s ", inet_ntoa(*((struct in_addr*)(&myIP))));
         Debug("and %s\n",  inet_ntoa(*((struct in_addr*)(&destIP)))));
 
         /*-----------------------------------------------------------------------------------------------------*/
